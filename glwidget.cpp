@@ -17,11 +17,6 @@ GLwidget::GLwidget(QWidget *parent):QOpenGLWidget(parent)
         //命名纹理对象
         //glGenTextures(1,&MapTexture)
 
-
-
-
-
-
 }
 
 GLwidget::~GLwidget()
@@ -66,22 +61,78 @@ void GLwidget::resizeGL(int w, int h)
 
 void GLwidget::paintGL()
 {
+    if(render!=nullptr&&!move)
+    {
+        glClearColor(0.4, 0.2, 0.9, 0.5);
+        glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+        getOriginBox(first);
+        //读取地图里的数据，然后对数据进行缓存，将其保存到VBO内，在每次绘制的时候都调用即可
+        QVector<GLfloat> data;//存储数据
+        SfsLayer *layer = render->map->layers->value(0);
+        for(int j=0;j<layer->geometries->size();j++)
+           {
+            //图层内的数据循环，得到每一个要素的集合数据，然后将这些数据缓存进VBO内
+           if(layer->geometries->value(j)->GeometryType()!=Sfs_Polygon)
+               continue;
+           SfsPolygon *polygon =(SfsPolygon *)layer->geometries->value(j);
+           for(int i=0;i<polygon->boundaries->value(0)->pts->size();i++)
+           {
+               GLfloat x= polygon->boundaries->value(0)->pts->value(i)->x;
+               GLfloat y = polygon->boundaries->value(0)->pts->value(i)->y;
+               data.append(x);
+               data.append(y);
+           }
+           m_shaderProgram->bind();
+           QOpenGLBuffer *VBO = new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
+           VBOs.append(VBO);
+           QOpenGLVertexArrayObject *VAO = new QOpenGLVertexArrayObject(this);
+           VAOs.append(VAO);
+           VAO->create();
+           VAO->bind();
+           VAO->setProperty("data_num",data.size());
+
+           VBO->create();
+           VBO->bind();
+           VBO->setUsagePattern(QOpenGLBuffer::StaticDraw);
+           VBO->allocate(data.data(),data.size()*sizeof (float));
+
+           attrPos =  m_shaderProgram->attributeLocation("attrPos");
+           m_shaderProgram->setAttributeBuffer(attrPos,GL_FLOAT,0,2,2*sizeof (float));
+           m_shaderProgram->enableAttributeArray(attrPos);
+
+           Project.ortho(rx,lx,by,ty,0,1);
+           m_shaderProgram->setUniformValue("modelview",ModelView);
+           m_shaderProgram->setUniformValue("projection",Project);
+           m_shaderProgram->setUniformValue("color",0.9,0.8,0.7);
+           VAO->bind();
+           glDrawArrays(GL_LINE_LOOP,0,VAO->property("data_num").toInt()/2);
+
+           VBO->release();
+           VAO->release();//解除绑定
+           m_shaderProgram->release();
+           data.clear();
+           ModelView.setToIdentity();
+           Project.setToIdentity();
+        }
+        first = false;
+    }
     //数据读取完成，之后需要交给绘图程序，进行绘制，
     if(render!=nullptr)
     {
+        return;
         ModelView.setToIdentity();
         Project.setToIdentity();
-        m_shaderProgram->bind();
-        Project.ortho(rx,lx,by,ty,0,1);
-        m_shaderProgram->setUniformValue("modelview",ModelView);
-        m_shaderProgram->setUniformValue("projection",Project);
-        m_shaderProgram->setUniformValue("color",0.9,0.8,0.7);
+
         glClearColor(0.4, 0.2, 0.9, 0.5);
         glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
         for(int i=0;i<VAOs.size();i++){
             QOpenGLVertexArrayObject *VAO = VAOs.value(i);
             m_shaderProgram->bind();
+            Project.ortho(rx,lx,by,ty,0,1);
+            m_shaderProgram->setUniformValue("modelview",ModelView);
+            m_shaderProgram->setUniformValue("projection",Project);
+            m_shaderProgram->setUniformValue("color",0.9,0.8,0.7);
             VAO->bind();
            glDrawArrays(GL_LINE_LOOP,0,VAO->property("data_num").toInt()/2);
            VAO->release();
@@ -161,19 +212,21 @@ void GLwidget::wheelEvent(QWheelEvent *event)
     StatsXY(&spt3,&pt1);
     update();
 }
+
 void GLwidget::animate(SfsRender *render)
 {
     this->render = render;
     first = true;//每次读入新的地图都会修改地图的范围。
-    map2Vao();//每次新读入数据对当前的数据进行调制
-
-
+    update();
+   // map2Vao();//每次新读入数据对当前的数据进行调制
 }
 
 void GLwidget::map2Vao()
 {
     if(render!=nullptr&&!move)
     {
+        glClearColor(0.4, 0.2, 0.9, 0.5);
+        glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
         getOriginBox(first);
         //读取地图里的数据，然后对数据进行缓存，将其保存到VBO内，在每次绘制的时候都调用即可
         QVector<GLfloat> data;//存储数据
@@ -191,6 +244,7 @@ void GLwidget::map2Vao()
                data.append(x);
                data.append(y);
            }
+           m_shaderProgram->bind();
            QOpenGLBuffer *VBO = new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
            VBOs.append(VBO);
            QOpenGLVertexArrayObject *VAO = new QOpenGLVertexArrayObject(this);
@@ -208,29 +262,22 @@ void GLwidget::map2Vao()
            m_shaderProgram->setAttributeBuffer(attrPos,GL_FLOAT,0,2,2*sizeof (float));
            m_shaderProgram->enableAttributeArray(attrPos);
 
+           Project.ortho(rx,lx,by,ty,0,1);
+           m_shaderProgram->setUniformValue("modelview",ModelView);
+           m_shaderProgram->setUniformValue("projection",Project);
+           m_shaderProgram->setUniformValue("color",0.9,0.8,0.7);
+           VAO->bind();
+           glDrawArrays(GL_LINE_LOOP,0,VAO->property("data_num").toInt()/2);
+
            VBO->release();
            VAO->release();//解除绑定
-
-
-           m_shaderProgram->bind();
-           VAO->bind();
-
-//           ProJect.ortho(rx,lx,by,ty,0,1);
-//           m_shaderProgram->setUniformValue("modelview",ModelView);
-//           m_shaderProgram->setUniformValue("projection",ProJect);
-//           m_shaderProgram->setUniformValue("color",0.9,0.8,0.7);
-//           glDrawArrays(GL_LINE_LOOP,0,data.size()/2);
-           VAO->release();
-           VBO->release();
-           m_shaderProgram->release();//解除绑定
+           m_shaderProgram->release();
            data.clear();
-
-//           ProJect.setToIdentity();
-//           ModelView.setToIdentity();
+           ModelView.setToIdentity();
+           Project.setToIdentity();
         }
         first = false;
     }
-    update();
 
 }
 
