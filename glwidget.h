@@ -41,21 +41,23 @@ public:
     bool first,move;
     bool left_bt,right_bt;//鼠标左右健按下
 
-    double ty,by,lx,rx,change_x,change_y;//map的外接矩阵存储
+    double ty,by,lx,rx,change_x,change_y;//
+    double tem_x,tem_y;//平移过程中的临时存放量
     double scale;//缩放尺度
     GLint width,height;
 
     SfsPoint S_pt1,S_pt2;//对应的实际坐标点，
     QPoint q_Pt1,q_Pt2;//屏幕的点，1表示按压，2表示抬起
     QPoint move_pt;//平移过程中的点
+    SfsPoint move_spt;//平移中的实际运算点
 
     GLubyte* PixelData;//纹理
     GLuint MapTexture;//地图纹理数据
 
     int attrPos;//着色器程序的数据索引值
-    QVector<QOpenGLBuffer *> VBOs,IBOs;// 顶点缓冲，和索引缓冲
+    QVector<QOpenGLBuffer *> *VBOs,*IBOs;// 顶点缓冲，和索引缓冲
     QOpenGLShaderProgram *m_shaderProgram;//着色器程序
-    QVector<QOpenGLVertexArrayObject*> VAOs;//顶点数组
+    QVector<QOpenGLVertexArrayObject*> *VAOs;//顶点数组
     QOpenGLShader *m_FragmentShader,*m_VertexShader;//着色器
     QMatrix4x4 Project,ModelView;//投影矩阵，和模视转换矩阵
 
@@ -66,6 +68,9 @@ private:
 public:
     //公有函数
     void map2Vao();//将数据存储到 VAO里面，重绘时只管VAO而不再处理 map数据
+    void transform();//进行坐标转换的函数
+    void ModelTrans();//进行平移坐标转换
+    void ProjectTrans();//进行投影坐标转换
 private:
     //私有函数
     void getOriginBox(bool MapBox);
