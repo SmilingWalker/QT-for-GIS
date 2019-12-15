@@ -66,66 +66,17 @@ void GLwidget::resizeGL(int w, int h)
 
 void GLwidget::paintGL()
 {
-        if(render!=nullptr&&!move&&first)
-        {
-            QOpenGLBuffer *VBO;
-            glClearColor(0.4, 0.2, 0.9, 0.5);
-            glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-            getOriginBox(first);
-            //读取地图里的数据，然后对数据进行缓存，将其保存到VBO内，在每次绘制的时候都调用即可
-            QVector<GLfloat> data;//存储数据
-            SfsLayer *layer = render->map->layers->value(0);
-            for(int j=0;j<layer->geometries->size();j++)
-            {
-                //图层内的数据循环，得到每一个要素的集合数据，然后将这些数据缓存进VBO内
-               if(layer->geometries->value(j)->GeometryType()!=Sfs_Polygon)
-                   continue;
-               SfsPolygon *polygon =(SfsPolygon *)layer->geometries->value(j);
-               for(int i=0;i<polygon->boundaries->value(0)->pts->size();i++)
-               {
-                   GLfloat x= polygon->boundaries->value(0)->pts->value(i)->x;
-                   GLfloat y = polygon->boundaries->value(0)->pts->value(i)->y;
-                   data.append(x);
-                   data.append(y);
-               }
-               m_shaderProgram->bind();
-               VBO = new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
-               VBOs->append(VBO);
-               QOpenGLVertexArrayObject *VAO = new QOpenGLVertexArrayObject(this);
-               VAOs->append(VAO);
-               VAO->create();
-               VAO->bind();
-               VAO->setProperty("data_num",data.size());
 
-               VBO->create();
-               VBO->bind();
-               VBO->setUsagePattern(QOpenGLBuffer::StaticDraw);
-               VBO->allocate(data.data(),data.size()*sizeof (float));
-
-               attrPos =  m_shaderProgram->attributeLocation("attrPos");
-               m_shaderProgram->setAttributeBuffer(attrPos,GL_FLOAT,0,2,2*sizeof (float));
-               m_shaderProgram->enableAttributeArray(attrPos);
-
-
-               VBO->release();
-               VAO->release();//解除绑定
-               m_shaderProgram->release();
-               data.clear();
-               ModelView.setToIdentity();
-               Project.setToIdentity();
-            }
-            first = false;
-            transform();
-        }
-//    数据读取完成，之后需要交给绘图程序，进行绘制，
+//    数据读取完成，之后需要交给绘图程序，进行绘制，绘图只需要处理绘图，不需要处理数据
     if(render!=nullptr)
     {
         glClearColor(0.4, 0.2, 0.9, 0.5);
         glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
         m_shaderProgram->bind();
+        //颜色配置信息
         m_shaderProgram->setUniformValue("color",0.9,0.8,0.7);
-
+        //循环绘画
         for(int i=0;i<VAOs->size();i++){
             QOpenGLVertexArrayObject *VAO = VAOs->value(i);
             VAO->bind();
@@ -218,22 +169,30 @@ void GLwidget::animate(SfsRender *render)
 {
     this->render = render;
     first = true;//每次读入新的地图都会修改地图的范围。
-    update();
-//    map2Vao();//每次新读入数据对当前的数据进行调制
+//    update();
+//    makeCurrent();
+//    paintGL();
+    map2Vao();//每次新读入数据对当前的数据进行调制
 }
 
 void GLwidget::map2Vao()
 {
-    if(render!=nullptr&&!move)
+    makeCurrent();//这一句很重要，将当前的OpenGL作为 当前操作的上下文 context，如果不添加这一句就绘制不出来，因为paintGL里是对这个函数有调用的
+
+      //There is no need to call makeCurrent() because this has already been done when this function is called.
+     //Before invoking this function, the context and the framebuffer are bound, and the viewport is set up by a call to glViewport(). No other state is set and no clearing or drawing is performed by the framework.
+    if(render!=nullptr&&!move&&first)
     {
-        glClearColor(0.4, 0.2, 0.9, 0.5);
-        glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-        getOriginBox(first);
-        //读取地图里的数据，然后对数据进行缓存，将其保存到VBO内，在每次绘制的时候都调用即可
+        //第一次读入数据的时候来调整
+            QOpenGLBuffer *VBO;
+            glClearColor(0.4, 0.2, 0.9, 0.5);
+            glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+            getOriginBox(first);
+            //读取地图里的数据，然后对数据进行缓存，将其保存到VBO内，在每次绘制的时候都调用即可
         QVector<GLfloat> data;//存储数据
         SfsLayer *layer = render->map->layers->value(0);
         for(int j=0;j<layer->geometries->size();j++)
-           {
+        {
             //图层内的数据循环，得到每一个要素的集合数据，然后将这些数据缓存进VBO内
            if(layer->geometries->value(j)->GeometryType()!=Sfs_Polygon)
                continue;
@@ -245,8 +204,8 @@ void GLwidget::map2Vao()
                data.append(x);
                data.append(y);
            }
-           m_shaderProgram->bind();
-           QOpenGLBuffer *VBO = new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
+//               m_shaderProgram->bind();//实际上在配置VAO和VBO时根本上是不需要着色器绑定的
+           VBO = new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
            VBOs->append(VBO);
            QOpenGLVertexArrayObject *VAO = new QOpenGLVertexArrayObject(this);
            VAOs->append(VAO);
@@ -259,19 +218,28 @@ void GLwidget::map2Vao()
            VBO->setUsagePattern(QOpenGLBuffer::StaticDraw);
            VBO->allocate(data.data(),data.size()*sizeof (float));
 
-           attrPos =  m_shaderProgram->attributeLocation("attrPos");
-           m_shaderProgram->setAttributeBuffer(attrPos,GL_FLOAT,0,2,2*sizeof (float));
-           m_shaderProgram->enableAttributeArray(attrPos);
+           glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
+           glEnableVertexAttribArray(0);//这才是配置顶点顶点数据的正确方法，这样配置的属性主要是buffer里的即当前VBO里的数据，同时也需要对于好一个着色器
 
-           //此处VBO不需要release 并且release会导致绘制错误
-           VAO->release();//解除绑定
+           //这种配置方法较为灵活，主要是着色器来调动，可以保证万无一失
+
+//               attrPos =  m_shaderProgram->attributeLocation("attrPos");
+//               m_shaderProgram->setAttributeBuffer(attrPos,GL_FLOAT,0,2,2*sizeof (float));
+//               m_shaderProgram->enableAttributeArray(attrPos);
+
+
            VBO->release();
-           m_shaderProgram->release();
+           VAO->release();//解除绑定
+//               m_shaderProgram->release();
            data.clear();
+           ModelView.setToIdentity();
+           Project.setToIdentity();
         }
         first = false;
+        transform();
     }
     update();
+
 
 }
 
