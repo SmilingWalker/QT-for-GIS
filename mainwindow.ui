@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>811</width>
-    <height>700</height>
+    <width>809</width>
+    <height>711</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -17,10 +17,10 @@
    <widget class="GLwidget" name="glwidget">
     <property name="geometry">
      <rect>
-      <x>153</x>
+      <x>151</x>
       <y>0</y>
-      <width>661</width>
-      <height>631</height>
+      <width>658</width>
+      <height>622</height>
      </rect>
     </property>
     <property name="layoutDirection">
@@ -33,13 +33,13 @@
       <x>0</x>
       <y>0</y>
       <width>151</width>
-      <height>631</height>
+      <height>622</height>
      </rect>
     </property>
     <property name="minimumSize">
      <size>
       <width>0</width>
-      <height>631</height>
+      <height>0</height>
      </size>
     </property>
     <property name="itemsExpandable">
@@ -60,7 +60,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>811</width>
+     <width>809</width>
      <height>26</height>
     </rect>
    </property>
@@ -71,6 +71,9 @@
     <property name="layoutDirection">
      <enum>Qt::LeftToRight</enum>
     </property>
+    <property name="tearOffEnabled">
+     <bool>false</bool>
+    </property>
     <property name="title">
      <string>打开文件</string>
     </property>
@@ -80,7 +83,15 @@
    </widget>
    <addaction name="menu"/>
   </widget>
+  <widget class="QStatusBar" name="statusBar">
+   <property name="layoutDirection">
+    <enum>Qt::LeftToRight</enum>
+   </property>
+  </widget>
   <widget class="QToolBar" name="toolBar">
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
    <property name="windowTitle">
     <string>toolBar</string>
    </property>
@@ -90,11 +101,10 @@
    <attribute name="toolBarBreak">
     <bool>false</bool>
    </attribute>
-  </widget>
-  <widget class="QStatusBar" name="statusBar">
-   <property name="layoutDirection">
-    <enum>Qt::LeftToRight</enum>
-   </property>
+   <addaction name="actionmove"/>
+   <addaction name="actionzoom"/>
+   <addaction name="actionSearch"/>
+   <addaction name="actionClear"/>
   </widget>
   <action name="actionGeoJSON">
    <property name="checkable">
@@ -120,9 +130,43 @@
     <string>PostGIS</string>
    </property>
   </action>
-  <action name="actionahiodai">
+  <action name="actionmove">
+   <property name="icon">
+    <iconset>
+     <normalon>:/new/icon/move.ico</normalon>
+    </iconset>
+   </property>
    <property name="text">
-    <string>ahiodai</string>
+    <string>move</string>
+   </property>
+  </action>
+  <action name="actionzoom">
+   <property name="icon">
+    <iconset>
+     <normalon>:/new/icon/zoom.ico</normalon>
+    </iconset>
+   </property>
+   <property name="text">
+    <string>zoom</string>
+   </property>
+  </action>
+  <action name="actionSearch">
+   <property name="icon">
+    <iconset>
+     <normalon>:/new/icon/search.ico</normalon>
+    </iconset>
+   </property>
+   <property name="text">
+    <string>Search</string>
+   </property>
+  </action>
+  <action name="actionClear">
+   <property name="icon">
+    <iconset resource="resource.qrc">
+     <normaloff>:/new/icon/clear1.ico</normaloff>:/new/icon/clear1.ico</iconset>
+   </property>
+   <property name="text">
+    <string>Clear</string>
    </property>
   </action>
  </widget>
@@ -138,6 +182,8 @@
    <header>layertree.h</header>
   </customwidget>
  </customwidgets>
- <resources/>
+ <resources>
+  <include location="resource.qrc"/>
+ </resources>
  <connections/>
 </ui>

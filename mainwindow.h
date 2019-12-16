@@ -31,6 +31,11 @@
 #include<ui_ConnectToPostGIS.h>
 #include<connect.h>
 #include<layertree.h>
+#include<QLineEdit>
+#include<qpushbutton.h>
+#include<contentdb.h>
+#include<qtablewidget.h>
+#include<retrievetable.h>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -46,6 +51,7 @@ public:
     void LoadGeoJsonFile(QString filename);
     void LoadShpfile(QString filename);
 
+
 private slots:
     void on_actionGeoJSON_triggered();
 
@@ -53,19 +59,34 @@ private slots:
 
     void on_actionPostGIS_triggered();
 
+    void on_actionSearch_triggered();
+
+    void on_actionClear_triggered();
+
 private:
     Ui::MainWindow *ui;
     SfsMap *map;
     QVector<SfsRender*> render;
+    QLineEdit *searchEdit;
+    QPushButton *searchButton;
+    retrieveTable *SearchTable;
+
+    bool search;
 public:
     FileReader *fileReader;
+    ContentDB *DataBase;
+    QTableWidget * searchRes;//检索结果返回，显示
 signals:
     void RenderMap(SfsRender * render);
     void SetTree(SfsLayer *layer);
+    void retrieveNew(SfsMap *map,QString query);
+    void clearSelect();
+
 public slots:
     void LoadPostgreSQL(QString filename,QString layerName);
     void LayerNone();
     void StatusBarXY(SfsPoint* s_pt,QPoint* q_pt);
+    void retrieve();
 
 
 };

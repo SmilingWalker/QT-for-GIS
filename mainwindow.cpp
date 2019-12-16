@@ -17,12 +17,16 @@ MainWindow::MainWindow(QWidget *parent)
     connect(this,&MainWindow::SetTree,ui->layerTree,&LayerTree::AddLayer);
     connect(fileReader,&FileReader::LayerNone,this,&MainWindow::LayerNone);
     connect(ui->glwidget,SIGNAL(StatsXY(SfsPoint*,QPoint*)),this,SLOT(StatusBarXY(SfsPoint*,QPoint*)));
+    connect(this,&MainWindow::clearSelect,ui->glwidget,&GLwidget::clearSelect);
     ui->layerTree->setStyleSheet( "QTreeView::item:hover{background-color:rgb(0,255,0)}"
                                                  "QTreeView::item:selected{background-color:rgb(255,0,0)}");
     CPLSetConfigOption("GDAL_DATA","D:/gdal2.4/data");
+
+
     map->bbox->setBoundary(DBL_MIN,DBL_MAX,DBL_MAX,DBL_MIN);
-
-
+    search = false;
+    SearchTable = nullptr;
+    DataBase = new ContentDB(this);//建立文本数据库
 }
 
 MainWindow::~MainWindow()
@@ -126,8 +130,6 @@ void MainWindow::LoadPostgreSQL(QString param,QString layerName)
         map->bbox->setBottomY(map->bbox->getBottomY()<layer->bbox->getBottomY()?map->bbox->getBottomY():layer->bbox->getBottomY());
         map->bbox->setLeftX(map->bbox->getLeftX()<layer->bbox->getLeftX()?map->bbox->getLeftX():layer->bbox->getLeftX());
         map->bbox->setRightX(map->bbox->getRightX()>layer->bbox->getRightX()?map->bbox->getRightX():layer->bbox->getRightX());
-
-
         fileReader->LoadPostGIS(pDos,layer,layerName);
     }
 }
@@ -141,6 +143,13 @@ void MainWindow::StatusBarXY(SfsPoint* s_pt, QPoint* q_pt)
 {
     QStatusBar *bar = statusBar();
     bar->showMessage("View X: "+QString::number(q_pt->x(), 10)+"  Y: "+QString::number(q_pt->y(), 10)+"  World X: "+QString::number(s_pt->x, 10,4)+"  Y: "+QString::number(s_pt->y, 10,4),3000);
+}
+
+void MainWindow::retrieve()
+{
+    QString query = searchEdit->text();
+    connect(this,&MainWindow::retrieveNew,SearchTable,&retrieveTable::RetrieveRes);
+    retrieveNew(map,query);
 }
 
 
@@ -161,4 +170,55 @@ void MainWindow::on_actionPostGIS_triggered()
         qDebug()<<"database open failed";
     Connect *gis = new Connect(this);
     gis->exec();
+}
+
+void MainWindow::on_actionSearch_triggered()
+{
+//    if(searchEdit!=nullptr)
+//    {
+
+//        searchEdit->hide();
+//        delete searchEdit;
+//        searchEdit = nullptr;
+//    }
+//    else{
+//        QRect rect =  ui->toolBar->geometry();
+//        searchEdit = new searchWidget(this,QRect(rect.x()+rect.width()-150,rect.y(),150,rect.height()));
+//        searchEdit->show();
+//    }
+//    searchEdit->show();
+//    searchButton->show();
+    if(!search)
+    {
+        QIcon ico = QIcon("D:/QtProject/GeoJSON/search.ico");
+        searchEdit = new QLineEdit(this);
+        searchButton = new QPushButton(this);
+        QRect rect =  ui->toolBar->geometry();
+        searchEdit->setGeometry(rect.x()+rect.width()*0.7,rect.y(),rect.width()*0.3,rect.height());
+        searchButton->setGeometry(rect.x()+rect.width()*0.95,rect.y(),rect.width()*0.05,rect.height());
+        searchButton->setIcon(ico);
+        searchButton->show();
+        searchEdit->show();
+        SearchTable = new retrieveTable(this);
+        SearchTable->setGeometry(rect.x()+rect.width()*0.7,rect.y()+rect.height(),rect.width()*0.3,rect.height()*5);
+        connect(searchButton,&QPushButton::clicked,this,&MainWindow::retrieve);
+        connect(SearchTable,SIGNAL(RetrievePaint(QVector<Metadata*>,QVector<Metadata*>)),ui->glwidget,SLOT(RetrievePaint(QVector<Metadata*>,QVector<Metadata*>)));
+        //connect(SearchTable,&retrieveTable::RetrievePaint,ui->glwidget,&GLwidget::RetrievePaint);
+        search = true;
+    }
+    else{
+        delete  searchEdit;
+        searchEdit = nullptr;
+        delete searchButton;
+        searchButton = nullptr;
+        delete SearchTable;
+        SearchTable = false;
+        search = false;
+    }
+}
+
+void MainWindow::on_actionClear_triggered()
+{
+    //用于清除当前选择的内容
+    clearSelect();
 }

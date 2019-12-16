@@ -23,6 +23,8 @@
 #include<qvector.h>
 #include<MtxAttr.h>
 #include<QMatrix4x4>
+#include<metadata.h>
+#include<metadata.h>
 
 
 class GLwidget : public QOpenGLWidget,protected QOpenGLFunctions_3_3_Core
@@ -34,9 +36,13 @@ public:
 
 public slots:
     void animate(SfsRender *render);
+    void RetrievePaint(QVector<Metadata*> selectNew,QVector<Metadata*> deselect);
+    void clearSelect();
+
 public:
-
-
+    bool Selection;
+    QVector<Metadata *> RetrieveResult;//实际变量
+    QVector<Metadata *> temp;//临时变量
     bool translate;//平移判断
     bool first,move;
     bool left_bt,right_bt;//鼠标左右健按下

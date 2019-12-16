@@ -23,12 +23,15 @@ DEFINES += QT_DEPRECATED_WARNINGS
 SOURCES += \
     boundarybox.cpp \
     connect.cpp \
+    contentdb.cpp \
     filereader.cpp \
     glwidget.cpp \
     layertree.cpp \
     main.cpp \
     mainwindow.cpp \
+    metadata.cpp \
     properties.cpp \
+    retrievetable.cpp \
     sfsgeometry.cpp \
     sfsgeometrycollection.cpp \
     sfslayer.cpp \
@@ -45,11 +48,14 @@ SOURCES += \
 HEADERS += \
     boundarybox.h \
     connect.h \
+    contentdb.h \
     filereader.h \
     glwidget.h \
     layertree.h \
     mainwindow.h \
+    metadata.h \
     properties.h \
+    retrievetable.h \
     sfsgeometry.h \
     sfsgeometrycollection.h \
     sfslayer.h \
@@ -91,6 +97,10 @@ INCLUDEPATH += E:/pg/include
 DEPENDPATH += E:/pg/include
 
 DISTFILES += \
+    QtIco.rc \
     fragmentShaderSource.frag \
     vertexShaderSource.vert
+
+RESOURCES += \
+    resource.qrc
 

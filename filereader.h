@@ -17,6 +17,8 @@
 #include<qdebug.h>
 #include<qmessagebox.h>
 #include<properties.h>
+#include<metadata.h>
+#include<contentdb.h>
 
 
 

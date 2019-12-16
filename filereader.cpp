@@ -554,7 +554,7 @@ void FileReader::ShpfileReader(GDALDataset *pDoc, SfsLayer *layer)
                     }
                 case OFTReal:
                     {
-                        properties->ProType->append(String_PRO);
+                        properties->ProType->append(Int_PRO);
                         properties->ProName->append(poFDefn->GetFieldDefn(j)->GetNameRef());
                         double *value = new double;
                         (*value) = ogrfeature->GetFieldAsDouble(j);

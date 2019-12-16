@@ -1,0 +1,11 @@
+<RCC>
+    <qresource prefix="/new/icon">
+        <file>map.ico</file>
+        <file>zoom.ico</file>
+        <file>search.ico</file>
+        <file>move.ico</file>
+        <file>clear_delete.ico</file>
+        <file>clear.ico</file>
+        <file>clear1.ico</file>
+    </qresource>
+</RCC>

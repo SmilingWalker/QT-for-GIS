@@ -16,6 +16,7 @@ GLwidget::GLwidget(QWidget *parent):QOpenGLWidget(parent)
         //glEnable(GL_TEXTURE_2D);//开启2D贴图
         PixelData =(GLubyte*) malloc (1024*768*4*4);
         attrPos = -1;
+        Selection = false;
         //命名纹理对象
         //glGenTextures(1,&MapTexture)
         VAOs = new QVector<QOpenGLVertexArrayObject*>();
@@ -70,12 +71,12 @@ void GLwidget::paintGL()
 //    数据读取完成，之后需要交给绘图程序，进行绘制，绘图只需要处理绘图，不需要处理数据
     if(render!=nullptr)
     {
-        glClearColor(0.4, 0.2, 0.9, 0.5);
+        glClearColor(0.9, 0.9, 0.9, 0.9);
         glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
         m_shaderProgram->bind();
         //颜色配置信息
-        m_shaderProgram->setUniformValue("color",0.9,0.8,0.7);
+        m_shaderProgram->setUniformValue("color",0.5,0.5,0.8);
         //循环绘画
         for(int i=0;i<VAOs->size();i++){
             QOpenGLVertexArrayObject *VAO = VAOs->value(i);
@@ -84,9 +85,31 @@ void GLwidget::paintGL()
            VAO->release();
            //m_shaderProgram->release();//不需要进行解绑，整个过程使用的是一个着色器程序
         }
+        if(Selection){
+                int prefix = 0;
+                m_shaderProgram->setUniformValue("color",0.1,0.1,0.1);
+                for (int i=0;i<RetrieveResult.size();i++) {
+                    Metadata *data = RetrieveResult.value(i);
+                    for(int j=0;j<render->map->layers->size();j++)
+                    {
+                        //先匹配图层
+                        if(data->layer==render->map->layers->value(j))
+                        {
+                            prefix += 0;
+                            break;
+                        }
+                        else
+                            prefix += render->map->layers->value(j)->geometries->size();
+                    }
+                   QOpenGLVertexArrayObject *VAO = VAOs->value(prefix+data->ID);
+                   VAO->bind();
+                   glDrawArrays(GL_LINE_LOOP,0,VAO->property("data_num").toInt()/2);
+                   VAO->release();
+                }
+            }
         m_shaderProgram->release();
-    }
 
+    }
 }
 
 void GLwidget::mousePressEvent(QMouseEvent *event)
@@ -169,10 +192,49 @@ void GLwidget::animate(SfsRender *render)
 {
     this->render = render;
     first = true;//每次读入新的地图都会修改地图的范围。
-//    update();
-//    makeCurrent();
-//    paintGL();
     map2Vao();//每次新读入数据对当前的数据进行调制
+}
+
+void GLwidget::RetrievePaint(QVector<Metadata *> selectNew, QVector<Metadata *> deselect)
+{
+    //这里如果直接添加，在搜索框被清除之后，就会出现空指针的情况，数据丢失，
+//    qDebug()<<"signal reseive";
+    Selection = true;
+    for(int j=0;j<deselect.size();j++){
+        Metadata* deleteData = deselect.value(j);
+        temp.removeOne(deleteData);
+    }
+    for(int i=0;i<selectNew.size();i++){
+        Metadata* insertData = selectNew.value(i);
+        temp.push_back(insertData);
+    }
+
+    for (int m = 0;m<RetrieveResult.size();m++) {
+        delete  RetrieveResult.value(m);
+    }
+    if(RetrieveResult.size()!=0)
+        RetrieveResult.remove(0,RetrieveResult.size());
+    for(int k=0;k<temp.size();k++)
+    {
+        Metadata *temp_data = temp.value(k);
+        Metadata *data = new Metadata();
+        data->layer = temp_data->layer;
+        data->ID = temp_data->ID;
+        data->content = temp_data->content;
+        RetrieveResult.append(data);
+    }
+    update();
+}
+
+void GLwidget::clearSelect()
+{
+    temp.remove(0,temp.size());
+    for (int m = 0;m<RetrieveResult.size();m++) {
+        delete  RetrieveResult.value(m);
+    }
+    if(RetrieveResult.size()!=0)
+        RetrieveResult.remove(0,RetrieveResult.size());
+    update();
 }
 
 void GLwidget::map2Vao()
@@ -190,7 +252,7 @@ void GLwidget::map2Vao()
             getOriginBox(first);
             //读取地图里的数据，然后对数据进行缓存，将其保存到VBO内，在每次绘制的时候都调用即可
         QVector<GLfloat> data;//存储数据
-        SfsLayer *layer = render->map->layers->value(0);
+        SfsLayer *layer = render->map->layers->value(0);//只是单图层，后期改正
         for(int j=0;j<layer->geometries->size();j++)
         {
             //图层内的数据循环，得到每一个要素的集合数据，然后将这些数据缓存进VBO内
