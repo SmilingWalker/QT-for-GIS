@@ -81,7 +81,14 @@
     <addaction name="actionShapfile"/>
     <addaction name="actionPostGIS"/>
    </widget>
+   <widget class="QMenu" name="menu_2">
+    <property name="title">
+     <string>建立索引</string>
+    </property>
+    <addaction name="QuarTree"/>
+   </widget>
    <addaction name="menu"/>
+   <addaction name="menu_2"/>
   </widget>
   <widget class="QStatusBar" name="statusBar">
    <property name="layoutDirection">
@@ -105,6 +112,7 @@
    <addaction name="actionzoom"/>
    <addaction name="actionSearch"/>
    <addaction name="actionClear"/>
+   <addaction name="actionSelect"/>
   </widget>
   <action name="actionGeoJSON">
    <property name="checkable">
@@ -167,6 +175,24 @@
    </property>
    <property name="text">
     <string>Clear</string>
+   </property>
+  </action>
+  <action name="QuarTree">
+   <property name="text">
+    <string>四叉树</string>
+   </property>
+  </action>
+  <action name="actionSelect">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset>
+     <normalon>:/new/icon/select.ico</normalon>
+    </iconset>
+   </property>
+   <property name="text">
+    <string>Select</string>
    </property>
   </action>
  </widget>

@@ -31,7 +31,6 @@ public:
     QItemSelectionModel *selection;
 signals:
     void RetrievePaint(QVector<Metadata*> selectNew,QVector<Metadata*> deselect);
-
 };
 
 #endif // RETRIVETABLE_H

@@ -25,6 +25,7 @@
 #include<QMatrix4x4>
 #include<metadata.h>
 #include<metadata.h>
+#include<prquadtree.h>
 
 
 class GLwidget : public QOpenGLWidget,protected QOpenGLFunctions_3_3_Core
@@ -38,6 +39,8 @@ public slots:
     void animate(SfsRender *render);
     void RetrievePaint(QVector<Metadata*> selectNew,QVector<Metadata*> deselect);
     void clearSelect();
+    void ChangeSelect();
+
 
 public:
     bool Selection;
@@ -66,7 +69,8 @@ public:
     QVector<QOpenGLVertexArrayObject*> *VAOs;//顶点数组
     QOpenGLShader *m_FragmentShader,*m_VertexShader;//着色器
     QMatrix4x4 Project,ModelView;//投影矩阵，和模视转换矩阵
-
+    bool selectChange;
+    PRQuadTree *PRtree;
 private:
     //私有数据
     SfsRender* render;

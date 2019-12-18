@@ -36,6 +36,7 @@
 #include<contentdb.h>
 #include<qtablewidget.h>
 #include<retrievetable.h>
+#include<prquadtree.h>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -63,6 +64,11 @@ private slots:
 
     void on_actionClear_triggered();
 
+    void on_QuarTree_triggered();
+
+
+    void on_actionSelect_triggered();
+
 private:
     Ui::MainWindow *ui;
     SfsMap *map;
@@ -76,11 +82,15 @@ public:
     FileReader *fileReader;
     ContentDB *DataBase;
     QTableWidget * searchRes;//检索结果返回，显示
+    PRQuadTree *QuarTree;
+    bool Selection;
 signals:
+    void SelectionChange();
     void RenderMap(SfsRender * render);
     void SetTree(SfsLayer *layer);
     void retrieveNew(SfsMap *map,QString query);
     void clearSelect();
+    void ChangeSelect(bool selection);
 
 public slots:
     void LoadPostgreSQL(QString filename,QString layerName);

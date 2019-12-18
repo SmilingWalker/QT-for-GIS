@@ -16,6 +16,7 @@ SfsGeometry::~SfsGeometry()
 
 SfsGeometry::SfsGeometry()
 {
+    // 初始默认都有边界和属性
     bbox = new BoundaryBox();
     properties = new Properties();
 }

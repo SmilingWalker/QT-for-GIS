@@ -92,10 +92,12 @@ void retrieveTable::RetrieveRes(SfsMap *map, QString query)
                             res = (*(QString*)geometry->properties->ProValue->value(k));
                             type = geometry->properties->ProName->value(k);
                             Metadata *data = new Metadata();
+//                            qDebug()<< res.left(1);
                             data->ID = j;
                             data->layer = layer;
                             data->content = res;
                             result.append(data);
+
                         }
                     }
 

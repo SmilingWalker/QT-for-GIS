@@ -1,10 +1,12 @@
-#include "sfslayer.h"
+﻿#include "sfslayer.h"
+#include<prquadtree.h>
 
 SfsLayer::SfsLayer()
 {
     setName("图层");
     geometries = new QVector<SfsGeometry*>;
     bbox = new BoundaryBox();
+    TreeIndex = nullptr;
 }
 
 QString SfsLayer::getName() const

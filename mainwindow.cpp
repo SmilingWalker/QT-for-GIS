@@ -18,6 +18,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(fileReader,&FileReader::LayerNone,this,&MainWindow::LayerNone);
     connect(ui->glwidget,SIGNAL(StatsXY(SfsPoint*,QPoint*)),this,SLOT(StatusBarXY(SfsPoint*,QPoint*)));
     connect(this,&MainWindow::clearSelect,ui->glwidget,&GLwidget::clearSelect);
+    connect(this,&MainWindow::SelectionChange,ui->glwidget,&GLwidget::ChangeSelect);
     ui->layerTree->setStyleSheet( "QTreeView::item:hover{background-color:rgb(0,255,0)}"
                                                  "QTreeView::item:selected{background-color:rgb(255,0,0)}");
     CPLSetConfigOption("GDAL_DATA","D:/gdal2.4/data");
@@ -27,6 +28,7 @@ MainWindow::MainWindow(QWidget *parent)
     search = false;
     SearchTable = nullptr;
     DataBase = new ContentDB(this);//建立文本数据库
+    Selection = false;
 }
 
 MainWindow::~MainWindow()
@@ -221,4 +223,27 @@ void MainWindow::on_actionClear_triggered()
 {
     //用于清除当前选择的内容
     clearSelect();
+}
+
+void MainWindow::on_QuarTree_triggered()
+{
+    //索引应该是一个图层的，每一个图层可以有一个索引
+    for(int i=0;i<map->layers->size();i++){
+        SfsLayer * layer = map->layers->value(i);
+        BoundaryBox *bbox = layer->bbox;
+        if(layer->TreeIndex==nullptr)
+        {
+            PRQuadTree *tree = new PRQuadTree(this);//新建一个四叉树索引
+            //递归计算，
+            tree->GenerateTree(layer,*bbox);
+
+            layer->TreeIndex = tree;//交给图层来管理 索引数据
+        }
+    }
+}
+
+
+void MainWindow::on_actionSelect_triggered()
+{
+    SelectionChange();
 }

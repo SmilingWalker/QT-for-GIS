@@ -775,7 +775,7 @@ void FileReader::ShpfileReader(GDALDataset *pDoc, SfsLayer *layer)
                 }
             }
         }
-        layer->bbox->setBoundary(maxY,minY,maxX,minX);
+        layer->bbox->setBoundary(maxY,minY,minX,maxX);
     }
 }
 

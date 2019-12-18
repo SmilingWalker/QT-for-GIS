@@ -6,6 +6,7 @@ class BoundaryBox
 {
 public:
     BoundaryBox();
+    BoundaryBox(double topY,double buttomY,double leftX,double rightX);
 
     void setBoundary(double topY,double buttomY,double leftX,double rightX);
     double getTopY() const;
@@ -19,6 +20,8 @@ public:
 
     double getRightX() const;
     void setRightX(double value);
+    bool intersect(BoundaryBox *box);
+    bool inBox(float x,float y);
 
 private:
     double topY;

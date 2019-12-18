@@ -31,6 +31,7 @@ SOURCES += \
     mainwindow.cpp \
     metadata.cpp \
     properties.cpp \
+    prquadtree.cpp \
     retrievetable.cpp \
     sfsgeometry.cpp \
     sfsgeometrycollection.cpp \
@@ -55,6 +56,7 @@ HEADERS += \
     mainwindow.h \
     metadata.h \
     properties.h \
+    prquadtree.h \
     retrievetable.h \
     sfsgeometry.h \
     sfsgeometrycollection.h \

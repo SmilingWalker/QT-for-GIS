@@ -17,12 +17,12 @@ GLwidget::GLwidget(QWidget *parent):QOpenGLWidget(parent)
         PixelData =(GLubyte*) malloc (1024*768*4*4);
         attrPos = -1;
         Selection = false;
+        selectChange = false;
         //命名纹理对象
         //glGenTextures(1,&MapTexture)
         VAOs = new QVector<QOpenGLVertexArrayObject*>();
         VBOs = new QVector<QOpenGLBuffer*>();
         IBOs = new QVector<QOpenGLBuffer*>();
-
 }
 
 GLwidget::~GLwidget()
@@ -114,6 +114,44 @@ void GLwidget::paintGL()
 
 void GLwidget::mousePressEvent(QMouseEvent *event)
 {
+    if(selectChange)
+    {
+        //如果开启点选功能则 取消移动功能
+        SfsPoint pt;//每次都会建立和析构
+        QPoint qpt=event->pos();
+        View2World(&pt,&qpt);
+        for(int n=0;n<render->map->layers->size();n++)
+        {
+            PRtree = render->map->layers->value(n)->TreeIndex;
+            if(PRtree==nullptr)
+                break;
+            while (true)
+            {
+                if(!PRtree->isleaf)//如果不是叶子节点
+                {
+                    //TreePt = PRtree->pt;//根本没有为SfsPoint 定义一个拷贝构造函数
+                    if(pt.x>PRtree->pt.x&&pt.y>PRtree->pt.y)
+                        PRtree = PRtree->NW;
+                    else if(pt.x<PRtree->pt.x&&pt.y>PRtree->pt.y)
+                        PRtree = PRtree->NE;
+                    else if(pt.x>PRtree->pt.x&&pt.y<PRtree->pt.y)
+                        PRtree = PRtree->SW;
+                    else if(pt.x<PRtree->pt.x&&pt.y<PRtree->pt.y)
+                        PRtree = PRtree->SE;
+                }
+                else{
+                    //找到叶节点 当前的joint是叶节点
+                    //找到后需要做两个操作，在界面上表示出来，同时在搜索框呈现信息！自规定，点选启动后，只能选择一个要素，并且每次点选会清除上一次的要素
+                    qDebug()<<" leaf joint  ***************";
+                    for(int i=0;i<PRtree->Indexes->size();i++)
+                        qDebug()<<PRtree->Indexes->value(i);
+                    break;
+                }
+            }
+        }
+        update();
+        return;
+    }
     if(event->button()==Qt::LeftButton)
     {
         //移动
@@ -237,6 +275,15 @@ void GLwidget::clearSelect()
     update();
 }
 
+void GLwidget::ChangeSelect()
+{
+    //启用选择功能
+    if(!selectChange)
+        selectChange = true;
+    else
+        selectChange =false;
+}
+
 void GLwidget::map2Vao()
 {
     makeCurrent();//这一句很重要，将当前的OpenGL作为 当前操作的上下文 context，如果不添加这一句就绘制不出来，因为paintGL里是对这个函数有调用的
@@ -331,7 +378,7 @@ void GLwidget::ModelTrans()
 void GLwidget::ProjectTrans()
 {
     //进行投影坐标转换
-    Project.ortho(rx,lx,by,ty,0,1);
+    Project.ortho(lx,rx,by,ty,0,1);
     m_shaderProgram->bind();
     m_shaderProgram->setUniformValue("projection",Project);
     m_shaderProgram->release();
@@ -377,7 +424,7 @@ void GLwidget::View2World(SfsPoint *s_pt, QPoint *q_pt)
 
       glMatrixMode(GL_PROJECTION);
       glLoadIdentity();
-      glOrtho(rx,lx,by,ty,1,0);    
+      glOrtho(lx,rx,by,ty,1,0);
       glGetDoublev(GL_PROJECTION_MATRIX, projection);//？？疑问，这里必须自己设定之后才有projection矩阵，否则没有，但是绘制图像已经有矩阵
 
 
@@ -417,7 +464,7 @@ void GLwidget::World2View(QPoint *q_pt, SfsPoint *s_pt)
 
       glMatrixMode(GL_PROJECTION);
       glLoadIdentity();
-      glOrtho(rx,lx,by,ty,1,0);
+      glOrtho(lx,rx,by,ty,1,0);
       glGetDoublev(GL_PROJECTION_MATRIX, projection);//？？疑问，这里必须自己设定之后才有projection矩阵，否则没有，但是绘制图像已经有矩阵
 
 

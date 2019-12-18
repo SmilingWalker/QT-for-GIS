@@ -2,6 +2,7 @@
 #define SFSLAYER_H
 #include<qvector.h>
 #include<sfsgeometry.h>
+class PRQuadTree;
 class SfsLayer
 {
 public:
@@ -11,6 +12,7 @@ public:
     BoundaryBox *bbox;
     QString getName() const;
     void setName(const QString &value);
+    PRQuadTree *TreeIndex;
 private:
     QString name;
 };

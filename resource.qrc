@@ -7,5 +7,6 @@
         <file>clear_delete.ico</file>
         <file>clear.ico</file>
         <file>clear1.ico</file>
+        <file>select.ico</file>
     </qresource>
 </RCC>
