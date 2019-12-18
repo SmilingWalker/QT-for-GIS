@@ -116,6 +116,8 @@ void GLwidget::mousePressEvent(QMouseEvent *event)
 {
     if(selectChange)
     {
+        clearSelect();
+        Selection = true;
         //如果开启点选功能则 取消移动功能
         SfsPoint pt;//每次都会建立和析构
         QPoint qpt=event->pos();
@@ -142,9 +144,16 @@ void GLwidget::mousePressEvent(QMouseEvent *event)
                 else{
                     //找到叶节点 当前的joint是叶节点
                     //找到后需要做两个操作，在界面上表示出来，同时在搜索框呈现信息！自规定，点选启动后，只能选择一个要素，并且每次点选会清除上一次的要素
-                    qDebug()<<" leaf joint  ***************";
                     for(int i=0;i<PRtree->Indexes->size();i++)
-                        qDebug()<<PRtree->Indexes->value(i);
+                    {
+//                        RetrieveResult.append(PRtree->Indexes->value(i));//和检索有点区别，这个的元数据是归四叉树索引来管理的不能直接添加需要新建然后再附加
+                        Metadata *temp_data = PRtree->Indexes->value(i);
+                        Metadata *data = new Metadata();
+                        data->layer = temp_data->layer;
+                        data->ID = temp_data->ID;
+                        data->content = temp_data->content;
+                        RetrieveResult.append(data);
+                    }
                     break;
                 }
             }

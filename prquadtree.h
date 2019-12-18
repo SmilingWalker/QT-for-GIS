@@ -6,6 +6,7 @@
 #include<sfspoint.h>
 #include<boundarybox.h>
 #include<qdebug.h>
+#include<metadata.h>
 class SfsLayer;
 class PRQuadTree : public QObject
 {
@@ -18,7 +19,7 @@ public:
     PRQuadTree *NE;
     PRQuadTree *SW;
     PRQuadTree *SE;
-    QVector<int> *Indexes;
+    QVector<Metadata *> *Indexes;
     SfsPoint pt;
     BoundaryBox *bbox;//如果是叶子节点的话记录一下它的外接矩阵
     int ObjectsLimit;

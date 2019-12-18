@@ -39,6 +39,8 @@ PRQuadTree::~PRQuadTree()
     }
     if(Indexes!=nullptr)
     {
+        qDeleteAll(Indexes->begin(),Indexes->end());//释放空间
+        Indexes->clear();
         delete Indexes;
         Indexes = nullptr;
     }
@@ -52,7 +54,6 @@ PRQuadTree::~PRQuadTree()
 
 void PRQuadTree::GenerateTree(SfsLayer *layer, BoundaryBox bbox)
 {
-    PRQuadTree *tr = new PRQuadTree(this);
     int num = 0;//判断是否超限
     pt.x = (bbox.getLeftX()+bbox.getRightX())/2.0;
     pt.y = (bbox.getBottomY()+bbox.getTopY())/2.0;
@@ -76,13 +77,20 @@ void PRQuadTree::GenerateTree(SfsLayer *layer, BoundaryBox bbox)
     }
     else{
         //如果满足最低限度，则记录bbox，和ID号
-        Indexes = new QVector<int>;
+        Indexes = new QVector<Metadata *>;
         isleaf = true;
         this->bbox = new BoundaryBox(bbox.getTopY(),bbox.getBottomY(),bbox.getLeftX(),bbox.getRightX());
         for(int j=0;j<layer->geometries->size();j++)
         {
             if(layer->geometries->value(j)->bbox->intersect(&bbox))
-                Indexes->append(j);//记录索引值
+             {
+                Metadata *data = new Metadata();
+                //对数据进行封装
+                data->ID = j;
+                data->layer = layer;
+                data->content = "";
+                Indexes->append(data);//记录索引值
+            }
         }
     }
 }
