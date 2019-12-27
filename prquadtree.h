@@ -3,7 +3,7 @@
 
 #include <QObject>
 #include<qvector.h>
-#include<sfspoint.h>
+#include<SFS/sfspoint.h>
 #include<boundarybox.h>
 #include<qdebug.h>
 #include<metadata.h>

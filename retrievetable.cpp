@@ -40,7 +40,6 @@ void retrieveTable::showData()
         itemName->setSizeHint(QSize(this->geometry().width()/2,25));
         resultModel->setItem(i,0,itemRes);
         resultModel->setItem(i,1,itemName);
-
     }
     this->show();
 }
@@ -61,8 +60,6 @@ retrieveTable::~retrieveTable()
 
 void retrieveTable::RetrieveRes(SfsMap *map, QString query)
 {
-
-
     //清除上一次的检索内容
     if(result.size()!=0)
     {
@@ -132,4 +129,34 @@ void retrieveTable::ResSelect(QItemSelection selected, QItemSelection deselected
         j+=2;
     }
     this->RetrievePaint(select,diselect);//发送信号，给绘图函数进行图形绘制
+}
+
+void retrieveTable::ClickSelect(Metadata *meta)
+{
+    //这函数用来响应点选操作，运行该操作时会清除已有的搜索内容，并且建立新的数据项
+    resultModel->clear();
+    //每次clear会清除掉表头信息，这里需要重新加入
+
+    resultModel->setColumnCount(2);
+    //头部 样式管理
+    QStandardItem *headRes = new QStandardItem(QString::fromLocal8Bit("检索结果"));
+    headRes->setTextAlignment(Qt::AlignCenter);
+    headRes->setSizeHint(QSize(this->geometry().width()/2,25));
+    QStandardItem *headName = new QStandardItem(QString::fromLocal8Bit("图层名"));
+    headName->setTextAlignment(Qt::AlignCenter);
+    headName->setSizeHint(QSize(this->geometry().width()/2,25));
+    resultModel->setHorizontalHeaderItem(0,headRes);
+    resultModel->setHorizontalHeaderItem(1,headName);
+
+    //每次检索重新构建数据,点选之后会将所有信息都显示出来
+    QStandardItem *itemRes = new QStandardItem(*((QString*)meta->layer->geometries->value(meta->ID)->properties->ProValue->value(8)));
+    QStandardItem *itemName = new QStandardItem(meta->layer->getName());
+    itemRes->setTextAlignment(Qt::AlignCenter);
+    itemRes->setSizeHint(QSize(this->geometry().width()/2,25));
+    itemName->setTextAlignment(Qt::AlignCenter);
+    itemName->setSizeHint(QSize(this->geometry().width()/2,25));
+    resultModel->setItem(0,0,itemRes);
+    resultModel->setItem(0,1,itemName);
+
+    this->show();
 }

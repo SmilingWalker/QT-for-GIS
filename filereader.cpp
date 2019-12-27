@@ -509,7 +509,6 @@ void FileReader::ShpfileReader(GDALDataset *pDoc, SfsLayer *layer)
     OGRGeometry *poGeometry;//shp几何对象
 
     for (int i=0;i<pDoc->GetLayers().size();i++) {
-        qDebug()<<"Layer";
         //图层循环
         //生成图层，每次读到一个图层就新建一个图层加入
         ogrlayer = pDoc->GetLayer(i);
@@ -520,7 +519,6 @@ void FileReader::ShpfileReader(GDALDataset *pDoc, SfsLayer *layer)
         int proCount = poFDefn->GetFieldCount();//每个图层内部的属性域数据的个数
         int nGeomFieldCount;
         while ((ogrfeature=ogrlayer->GetNextFeature())!=nullptr) {
-            QString name =ogrfeature->GetFieldAsString(8);
             Properties *properties = new Properties();
             for (int j=0;j<proCount;j++) {
                 OGRFieldDefn *poFieldDefn = poFDefn->GetFieldDefn(j);
@@ -620,7 +618,6 @@ void FileReader::ShpfileReader(GDALDataset *pDoc, SfsLayer *layer)
 
                     }
                     polygon->properties = properties;
-                    polygon->setName(name);
                     polygon->bbox->setBoundary(topY,buttomY,leftX,rightX);
                     maxY = topY>maxY?topY:maxY;
                     minY = buttomY<minY?buttomY:minY;
@@ -706,12 +703,11 @@ void FileReader::ShpfileReader(GDALDataset *pDoc, SfsLayer *layer)
                             SfsPoint *pt = new SfsPoint();
                             lineString->pts->append(pt);
                             pt->x = ogrLineString->getX(m2);
-
+                            pt->y = ogrLineString->getY(m2);
                             topY = pt->y>topY?pt->y:topY;
                             buttomY = buttomY<pt->y?buttomY:pt->y;
                             leftX = leftX<pt->x?leftX:pt->x;
                             rightX = rightX>pt->x?rightX:pt->x;
-                            pt->y = ogrLineString->getY(m2);
                         }
                         lineString->bbox->setBoundary(topY,buttomY,leftX,rightX);
                         maxY = topY>maxY?topY:maxY;
@@ -770,30 +766,77 @@ void FileReader::ShpfileReader(GDALDataset *pDoc, SfsLayer *layer)
                         maxX = rightX>maxX?rightX:maxX;
                         minX = leftX<minX?leftX:minX;
                         polygon->bbox->setBoundary(topY,buttomY,leftX,rightX);
-                        polygon->setName(name);
                     }
                 }
             }
         }
+        layer->setGeometype(layer->geometries->value(0)->GeometryType());//为图层设置图层属性，图层至少有一个要素
         layer->bbox->setBoundary(maxY,minY,minX,maxX);
     }
 }
 
-void FileReader::LoadPostGIS(GDALDataset *pDoc, SfsLayer *layer,QString layerName)
+void FileReader::LoadPostGIS(OGRLayer *ogrlayer, SfsLayer *layer)
 {
-    //数据库图层文件
-    OGRLayer *ogrlayer;//shp图层
-    OGRGeometry *poGeometry;//shp几何对象
-    ogrlayer = pDoc->GetLayerByName(layerName.toStdString().c_str());
-    if(ogrlayer==nullptr)
-        LayerNone();
-    else{
+        double maxY = DBL_MIN,minY=DBL_MAX,maxX=DBL_MIN,minX=DBL_MAX;//整个图层的范围
+        OGRGeometry *poGeometry;//shp几何对象
+        layer->setName(ogrlayer->GetName());
         OGRFeatureDefn *poFDefn = ogrlayer->GetLayerDefn();//图层要素的定义数据
         OGRFeature *ogrfeature;//图层内的要素
-
-        int iGeomField;//几何要素的位置
-        int nGeomFieldCount;//每个feature几何要素的个数
+        int iGeomField;//几何要素的属性数据
+        int proCount = poFDefn->GetFieldCount();//每个图层内部的属性域数据的个数
+        int nGeomFieldCount;
         while ((ogrfeature=ogrlayer->GetNextFeature())!=nullptr) {
+            Properties *properties = new Properties();
+            for (int j=0;j<proCount;j++) {
+                OGRFieldDefn *poFieldDefn = poFDefn->GetFieldDefn(j);
+                switch (poFieldDefn->GetType()){
+                case OFTInteger:
+                    {
+                        properties->ProType->append(Int_PRO);
+                        properties->ProName->append(poFDefn->GetFieldDefn(j)->GetNameRef());
+                        int *value = new int;
+                        (*value) = ogrfeature->GetFieldAsInteger(j);
+                        properties->ProValue->append(value);
+                        break;
+                    }
+                case OFTInteger64:
+                    {
+                        properties->ProType->append(Int_PRO);
+                        properties->ProName->append(poFDefn->GetFieldDefn(j)->GetNameRef());
+                        int *value = new int;
+                        (*value) = ogrfeature->GetFieldAsInteger64(j);
+                        properties->ProValue->append(value);
+                        break;
+                    }
+                case OFTString:
+                    {
+                        properties->ProType->append(String_PRO);
+                        properties->ProName->append(poFDefn->GetFieldDefn(j)->GetNameRef());
+                        QString *value = new QString;
+                        (*value) = ogrfeature->GetFieldAsString(j);
+                        properties->ProValue->append(value);
+                        break;
+                    }
+                case OFTReal:
+                    {
+                        properties->ProType->append(Int_PRO);
+                        properties->ProName->append(poFDefn->GetFieldDefn(j)->GetNameRef());
+                        double *value = new double;
+                        (*value) = ogrfeature->GetFieldAsDouble(j);
+                        properties->ProValue->append(value);
+                        break;
+                    }
+                case OFTWideString:
+                    {
+                        properties->ProType->append(String_PRO);
+                        properties->ProName->append(poFDefn->GetFieldDefn(j)->GetNameRef());
+                        QString *value = new QString;
+                        (*value) = ogrfeature->GetFieldAsString(j);
+                        properties->ProValue->append(value);
+                        break;
+                    }
+                }
+            }
             nGeomFieldCount = ogrfeature->GetGeomFieldCount();//得到feature的几何对象的个数
             //循环建立
             for (iGeomField=0;iGeomField<nGeomFieldCount;iGeomField++) {
@@ -802,10 +845,12 @@ void FileReader::LoadPostGIS(GDALDataset *pDoc, SfsLayer *layer,QString layerNam
                 if(poGeometry->getGeometryType()==wkbPolygon)
                 {
                     //如果是单一的面要素
+                    double topY=DBL_MIN,buttomY= DBL_MAX,leftX= DBL_MAX,rightX=DBL_MIN;
                     SfsPolygon *polygon = new SfsPolygon();
                     layer->geometries->append(polygon);
                     OGRPolygon *ogrpolygon = poGeometry->toPolygon();   //单个多边形层次，可能为有内点的，比如有孔的多边形
                     SfsLineString *boundaryOut = new SfsLineString();//面要素都有外边界，先存储外边界，SfsPolygon 默认第一个就是外边界
+                    polygon->boundaries->append(boundaryOut);
                     OGRLineString *ogrlineString =  ogrpolygon->getExteriorRing();
                     for(int m2=0;m2<ogrlineString->getNumPoints();m2++)
                     {
@@ -814,33 +859,61 @@ void FileReader::LoadPostGIS(GDALDataset *pDoc, SfsLayer *layer,QString layerNam
                         boundaryOut->pts->append(pt);
                         pt->x = ogrlineString->getX(m2);
                         pt->y = ogrlineString->getY(m2);
+                        topY = pt->y>topY?pt->y:topY;
+                        buttomY = buttomY<pt->y?buttomY:pt->y;
+                        leftX = leftX<pt->x?leftX:pt->x;
+                        rightX = rightX>pt->x?rightX:pt->x;
                     }
                     //内多边形循环
                     for (int m3=0;m3<ogrpolygon->getNumInteriorRings();m3++) {
                         SfsLineString *boundaryIn = new SfsLineString();
                         OGRLineString * linestring = ogrpolygon->getInteriorRing(m3);
                         polygon->boundaries->append(boundaryIn);
-                        for(int m2=0;m2<linestring->getNumPoints();m2++)
+                        for(int m4=0;m4<linestring->getNumPoints();m4++)
                         {
                             //坐标点数组层次
                             SfsPoint * pt = new SfsPoint();
                             boundaryIn->pts->append(pt);
-                            pt->x = linestring->getX(m2);
-                            pt->y = linestring->getY(m2);
+                            pt->x = linestring->getX(m4);
+                            pt->y = linestring->getY(m4);
+
+                            topY = pt->y>topY?pt->y:topY;
+                            buttomY = buttomY<pt->y?buttomY:pt->y;
+                            leftX = leftX<pt->x?leftX:pt->x;
+                            rightX = rightX>pt->x?rightX:pt->x;
                         }
 
                     }
-
+                    polygon->properties = properties;
+                    polygon->bbox->setBoundary(topY,buttomY,leftX,rightX);
+                    maxY = topY>maxY?topY:maxY;
+                    minY = buttomY<minY?buttomY:minY;
+                    maxX = rightX>maxX?rightX:maxX;
+                    minX = leftX<minX?leftX:minX;
                 }
                 else if (poGeometry->getGeometryType()==wkbPoint) {
                     //如果是点数据
+                    double topY=DBL_MIN,buttomY= DBL_MAX,leftX= DBL_MAX,rightX=DBL_MIN;
                     OGRPoint *point = poGeometry->toPoint();
                     SfsPoint *pt = new SfsPoint();
                     layer->geometries->append(pt);
                     pt->x = point->getX();
                     pt->y = point->getY();
+                    //设置属性
+                    pt->properties =  properties;
+
+                    topY = pt->y>topY?pt->y:topY;
+                    buttomY = buttomY<pt->y?buttomY:pt->y;
+                    leftX = leftX<pt->x?leftX:pt->x;
+                    rightX = rightX>pt->x?rightX:pt->x;
+                    //读取图层的范围
+                    maxY = topY>maxY?topY:maxY;
+                    minY = buttomY<minY?buttomY:minY;
+                    maxX = rightX>maxX?rightX:maxX;
+                    minX = leftX<minX?leftX:minX;
                 }
                 else if (poGeometry->getGeometryType()==wkbLineString) {
+                    double topY=DBL_MIN,buttomY= DBL_MAX,leftX= DBL_MAX,rightX=DBL_MIN;
                     SfsLineString *lineString = new SfsLineString();
                     layer->geometries->append(lineString);
                     OGRLineString *ogrLineString = poGeometry->toLineString();
@@ -849,12 +922,23 @@ void FileReader::LoadPostGIS(GDALDataset *pDoc, SfsLayer *layer,QString layerNam
                         lineString->pts->append(pt);
                         pt->x = ogrLineString->getX(m1);
                         pt->y = ogrLineString->getY(m1);
+
+                        topY = pt->y>topY?pt->y:topY;
+                        buttomY = buttomY<pt->y?buttomY:pt->y;
+                        leftX = leftX<pt->x?leftX:pt->x;
+                        rightX = rightX>pt->x?rightX:pt->x;
                     }
+                    lineString->bbox->setBoundary(topY,buttomY,leftX,rightX);
+                    //读取图层的范围
+                    lineString->properties = properties;
+                    maxY = topY>maxY?topY:maxY;
+                    minY = buttomY<minY?buttomY:minY;
+                    maxX = rightX>maxX?rightX:maxX;
+                    minX = leftX<minX?leftX:minX;
                 }
                 else if (poGeometry->getGeometryType()==wkbMultiPoint) {
                     //如果是多点数据
-                    SfsMultiPoint *MultiPoint = new SfsMultiPoint();
-                    layer->geometries->append(MultiPoint);
+                    double topY=DBL_MIN,buttomY= DBL_MAX,leftX= DBL_MAX,rightX=DBL_MIN;
                     OGRMultiPoint *ogrMultiPoint = poGeometry->toMultiPoint();
                     for (int m1=0;m1<ogrMultiPoint->getNumGeometries();m1++) {
                         SfsPoint *pt = new SfsPoint();
@@ -862,37 +946,52 @@ void FileReader::LoadPostGIS(GDALDataset *pDoc, SfsLayer *layer,QString layerNam
                         pt->x = (*(ogrMultiPoint->begin()+m1))->getX();
                         pt->y = (*(ogrMultiPoint->begin()+m1))->getY();
 
+                        topY = pt->y>topY?pt->y:topY;
+                        buttomY = buttomY<pt->y?buttomY:pt->y;
+                        leftX = leftX<pt->x?leftX:pt->x;
+                        rightX = rightX>pt->x?rightX:pt->x;
                     }
+                    //读取图层的范围
+                    maxY = topY>maxY?topY:maxY;
+                    minY = buttomY<minY?buttomY:minY;
+                    maxX = rightX>maxX?rightX:maxX;
+                    minX = leftX<minX?leftX:minX;
                 }
                 else if (poGeometry->getGeometryType()==wkbMultiLineString) {
                     //如果为多线
-                    SfsMultiLineString *MultiLineString = new SfsMultiLineString();
-                    layer->geometries->append(MultiLineString);
                     OGRMultiLineString *ogrMultilineString = poGeometry->toMultiLineString();
                     for (int m1=0;m1<ogrMultilineString->getNumGeometries();m1++) {
                         //单线层次
+                        double topY=DBL_MIN,buttomY= DBL_MAX,leftX= DBL_MAX,rightX=DBL_MIN;
                         OGRLineString *ogrLineString = *(ogrMultilineString->begin()+m1);
                         SfsLineString *lineString = new SfsLineString();
-                        MultiLineString->lineStrings->append(lineString);
+                        layer->geometries->append(lineString);
                         for (int m2=0;m2<ogrLineString->getNumPoints();m2++) {
                             SfsPoint *pt = new SfsPoint();
                             lineString->pts->append(pt);
                             pt->x = ogrLineString->getX(m2);
                             pt->y = ogrLineString->getY(m2);
+                            topY = pt->y>topY?pt->y:topY;
+                            buttomY = buttomY<pt->y?buttomY:pt->y;
+                            leftX = leftX<pt->x?leftX:pt->x;
+                            rightX = rightX>pt->x?rightX:pt->x;
                         }
+                        lineString->bbox->setBoundary(topY,buttomY,leftX,rightX);
+                        maxY = topY>maxY?topY:maxY;
+                        minY = buttomY<minY?buttomY:minY;
+                        maxX = rightX>maxX?rightX:maxX;
+                        minX = leftX<minX?leftX:minX;
                     }
 
                 }
                 else if (poGeometry->getGeometryType()==wkbMultiPolygon) {
                     //多 多边形层次
-                    SfsMultiPolygon *MultiPolygon = new SfsMultiPolygon();
-                    layer->geometries->append(MultiPolygon);
                     OGRMultiPolygon *ogrMultiPolygon =  poGeometry->toMultiPolygon();
                     for (int m1=0;m1<ogrMultiPolygon->getNumGeometries();m1++) {
-
                         //单多边形层次
+                        double topY=DBL_MIN,buttomY= DBL_MAX,leftX= DBL_MAX,rightX=DBL_MIN;
                         SfsPolygon *polygon = new SfsPolygon();
-                        MultiPolygon->polygons->append(polygon);
+                        layer->geometries->append(polygon);
                         OGRPolygon *ogrpolygon = *(ogrMultiPolygon->begin()+m1);
                         SfsLineString *boundaryOut = new SfsLineString();//面要素都有外边界，先存储外边界，SfsPolygon 默认第一个就是外边界
                         OGRLineString *ogrlineString =  ogrpolygon->getExteriorRing();
@@ -904,6 +1003,11 @@ void FileReader::LoadPostGIS(GDALDataset *pDoc, SfsLayer *layer,QString layerNam
                             boundaryOut->pts->append(pt);
                             pt->x = ogrlineString->getX(m2);
                             pt->y = ogrlineString->getY(m2);
+
+                            topY = pt->y>topY?pt->y:topY;
+                            buttomY = buttomY<pt->y?buttomY:pt->y;
+                            leftX = leftX<pt->x?leftX:pt->x;
+                            rightX = rightX>pt->x?rightX:pt->x;
                         }
                         //内多边形循环
                         for (int m3=0;m3<ogrpolygon->getNumInteriorRings();m3++) {
@@ -917,15 +1021,22 @@ void FileReader::LoadPostGIS(GDALDataset *pDoc, SfsLayer *layer,QString layerNam
                                 boundaryIn->pts->append(pt);
                                 pt->x = linestring->getX(m2);
                                 pt->y = linestring->getY(m2);
+
+                                topY = pt->y>topY?pt->y:topY;
+                                buttomY = buttomY<pt->y?buttomY:pt->y;
+                                leftX = leftX<pt->x?leftX:pt->x;
+                                rightX = rightX>pt->x?rightX:pt->x;
                             }
-
                         }
-
+                        maxY = topY>maxY?topY:maxY;
+                        minY = buttomY<minY?buttomY:minY;
+                        maxX = rightX>maxX?rightX:maxX;
+                        minX = leftX<minX?leftX:minX;
+                        polygon->bbox->setBoundary(topY,buttomY,leftX,rightX);
                     }
                 }
             }
         }
-
-    }
-
+        layer->setGeometype(layer->geometries->value(0)->GeometryType());//为图层设置图层属性，图层至少有一个要素
+        layer->bbox->setBoundary(maxY,minY,minX,maxX);
 }

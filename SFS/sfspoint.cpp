@@ -14,7 +14,7 @@ bool SfsPoint::operator=(const SfsPoint * pt)
 
 }
 
-int SfsPoint::GeometryType()
+GeoType SfsPoint::GeometryType()
 {
     return Sfs_Point;
 }

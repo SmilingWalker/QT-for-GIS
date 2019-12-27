@@ -3,13 +3,14 @@
 
 
 
-#define Sfs_Point 10000
-#define Sfs_Polygon 10001
-#define Sfs_LineString 10002
-#define Sfs_MultiPolygon 10003
-#define Sfs_MultiLineString 10004
-#define Sfs_MultiPoint 10005
-#define Sfs_GeometryCollection 10006
+//#define Sfs_Point 10000
+//#define Sfs_Polygon 10001
+//#define Sfs_LineString 10002
+
+//#define Sfs_MultiPolygon 10003
+//#define Sfs_MultiLineString 10004
+//#define Sfs_MultiPoint 10005
+//#define Sfs_GeometryCollection 10006
 
 #include<qrect.h>
 #include<boundarybox.h>
@@ -18,13 +19,18 @@
 #include<qvector.h>
 #include<properties.h>
 
+enum GeoType{
+    Sfs_Point=10000,Sfs_Polygon=10001,Sfs_LineString=10002,Sfs_MultiPolygon=10003,
+    Sfs_MultiLineString=10004,Sfs_MultiPoint=10005,Sfs_GeometryCollection=10006
+};
+
 class SfsGeometry
 {
 
 public:
     ~SfsGeometry();
     SfsGeometry();
-    virtual int  GeometryType()=0;
+    virtual GeoType  GeometryType()=0;
     virtual int Dimension()=0;
     SfsGeometry * boundary();
     QString getName() const;

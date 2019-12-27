@@ -1,32 +1,45 @@
 #include "glwidget.h"
-#include<sfspolygon.h>
-
+#include<SFS/sfspolygon.h>
+#include<GPC/gpc.h>
+#include<GPC/gpc.c>
+gpc_vertex buildVertex(float x, float y)
+{
+    gpc_vertex vertex;
+    vertex.x = x;
+    vertex.y = y;
+    return vertex;
+}
 GLwidget::GLwidget(QWidget *parent):QOpenGLWidget(parent)
 {
-        setAutoFillBackground(false);
-        tem_x =0;
-        tem_y =0;
-        render = nullptr;
-        left_bt=false;
-        right_bt=false;
-        translate = false;
-        first =true;
-        scale = 1;
-        move = false;
-        //glEnable(GL_TEXTURE_2D);//开启2D贴图
-        PixelData =(GLubyte*) malloc (1024*768*4*4);
-        attrPos = -1;
-        Selection = false;
-        selectChange = false;
-        //命名纹理对象
-        //glGenTextures(1,&MapTexture)
-        VAOs = new QVector<QOpenGLVertexArrayObject*>();
-        VBOs = new QVector<QOpenGLBuffer*>();
-        IBOs = new QVector<QOpenGLBuffer*>();
+    //新建地图,设置范围为最大值
+    map = new SfsMap();
+    map->bbox->setBoundary(DBL_MIN,DBL_MAX,DBL_MAX,DBL_MIN);
+
+    setAutoFillBackground(false);
+    tem_x =0;
+    tem_y =0;
+
+    left_bt=false;
+    right_bt=false;
+    translate = false;
+    first =true;
+    scale = 1;
+    move = false;
+    //glEnable(GL_TEXTURE_2D);//开启2D贴图
+    PixelData =(GLubyte*) malloc (1024*768*4*4);
+    attrPos = -1;
+    Selection = false;
+    selectChange = false;
+    //命名纹理对象
+    //glGenTextures(1,&MapTexture)
+    VAOs = new QVector<QOpenGLVertexArrayObject*>();
 }
 
 GLwidget::~GLwidget()
 {
+    //释放地图
+    if(map!=nullptr)
+        delete map;
     delete m_shaderProgram;
     delete m_VertexShader;
     delete m_FragmentShader;
@@ -41,8 +54,8 @@ void GLwidget::initializeGL()
     m_VertexShader = new QOpenGLShader(QOpenGLShader::Vertex);
     m_FragmentShader = new QOpenGLShader(QOpenGLShader::Fragment);
     //着色器配置，链接，随后只要进行执行即可
-    m_VertexShader->compileSourceFile("D:\\QtProject\\GeoJSON\\vertexShaderSource.vert");
-    m_FragmentShader->compileSourceFile("D:\\QtProject\\GeoJSON\\fragmentShaderSource.frag");
+    m_VertexShader->compileSourceFile("D:\\QtProject\\GeoJSON\\GLSL\\vertexShaderSource.vert");
+    m_FragmentShader->compileSourceFile("D:\\QtProject\\GeoJSON\\GLSL\\fragmentShaderSource.frag");
     m_shaderProgram->addShader(m_VertexShader);
     m_shaderProgram->addShader(m_FragmentShader);
     m_shaderProgram->link();
@@ -69,41 +82,49 @@ void GLwidget::paintGL()
 {
 
 //    数据读取完成，之后需要交给绘图程序，进行绘制，绘图只需要处理绘图，不需要处理数据
-    if(render!=nullptr)
+    if(map->layers->size()!=0)
     {
         glClearColor(0.9, 0.9, 0.9, 0.9);
         glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
         m_shaderProgram->bind();
         //颜色配置信息
-        m_shaderProgram->setUniformValue("color",0.5,0.5,0.8);
+        m_shaderProgram->setUniformValue("color",0.9,0.2,0.5);
         //循环绘画
         for(int i=0;i<VAOs->size();i++){
             QOpenGLVertexArrayObject *VAO = VAOs->value(i);
             VAO->bind();
-           glDrawArrays(GL_LINE_LOOP,0,VAO->property("data_num").toInt()/2);
-           VAO->release();
+            if(VAO->property("geo_type").toInt()==Sfs_Polygon)
+            glDrawElements(GL_TRIANGLES,VAO->property("vertex_num").toInt(),GL_UNSIGNED_INT,(void*)0);
+            else if(VAO->property("geo_type").toInt()==Sfs_LineString){
+                glDrawArrays(GL_LINES,0,VAO->property("vertex_num").toInt());
+            }
+            else if(VAO->property("geo_type").toInt()==Sfs_Point)
+            {
+                glDrawArrays(GL_POINTS,0,VAO->property("vertex_num").toInt());
+            }
+            VAO->release();
            //m_shaderProgram->release();//不需要进行解绑，整个过程使用的是一个着色器程序
         }
         if(Selection){
-                int prefix = 0;
+                int prefix = 0;//前面是否有图层，有图层则附加值，图层要素个数
                 m_shaderProgram->setUniformValue("color",0.1,0.1,0.1);
                 for (int i=0;i<RetrieveResult.size();i++) {
                     Metadata *data = RetrieveResult.value(i);
-                    for(int j=0;j<render->map->layers->size();j++)
+                    for(int j=0;j<map->layers->size();j++)
                     {
                         //先匹配图层
-                        if(data->layer==render->map->layers->value(j))
+                        if(data->layer==map->layers->value(j))
                         {
                             prefix += 0;
                             break;
                         }
                         else
-                            prefix += render->map->layers->value(j)->geometries->size();
+                            prefix += map->layers->value(j)->geometries->size();
                     }
                    QOpenGLVertexArrayObject *VAO = VAOs->value(prefix+data->ID);
                    VAO->bind();
-                   glDrawArrays(GL_LINE_LOOP,0,VAO->property("data_num").toInt()/2);
+                   glDrawElements(GL_TRIANGLES,VAO->property("vertex_num").toInt(),GL_UNSIGNED_INT,(void*)0);
                    VAO->release();
                 }
             }
@@ -122,9 +143,9 @@ void GLwidget::mousePressEvent(QMouseEvent *event)
         SfsPoint pt;//每次都会建立和析构
         QPoint qpt=event->pos();
         View2World(&pt,&qpt);
-        for(int n=0;n<render->map->layers->size();n++)
+        for(int n=0;n<map->layers->size();n++)
         {
-            PRtree = render->map->layers->value(n)->TreeIndex;
+            PRtree =map->layers->value(n)->TreeIndex;
             if(PRtree==nullptr)
                 break;
             while (true)
@@ -152,7 +173,12 @@ void GLwidget::mousePressEvent(QMouseEvent *event)
                         data->layer = temp_data->layer;
                         data->ID = temp_data->ID;
                         data->content = temp_data->content;
-                        RetrieveResult.append(data);
+                        RetrieveResult.append(data);//检索结果
+                        if(i!=0)
+                        {
+                            SetClick(data);
+                            break;
+                        }
                     }
                     break;
                 }
@@ -222,9 +248,9 @@ void GLwidget::wheelEvent(QWheelEvent *event)
     View2World(&spt1,&pt1);
 
     if(event->delta()>0)
-        scale = scale+0.1;
+        scale = scale*1.1;
     else
-        scale += -0.1;
+        scale =scale*0.9;
     View2World(&spt2,&pt2);
     change_x += (spt2.x-spt1.x)*scale;
     change_y += (spt2.y-spt1.y)*scale;
@@ -235,11 +261,17 @@ void GLwidget::wheelEvent(QWheelEvent *event)
     update();
 }
 
-void GLwidget::animate(SfsRender *render)
+void GLwidget::animate(SfsLayer *layer)
 {
-    this->render = render;
-    first = true;//每次读入新的地图都会修改地图的范围。
-    map2Vao();//每次新读入数据对当前的数据进行调制
+    map->layers->append(layer);
+    //map的范围更新
+    map->bbox->setTopY(map->bbox->getTopY()>layer->bbox->getTopY()?map->bbox->getTopY():layer->bbox->getTopY());
+    map->bbox->setBottomY(map->bbox->getBottomY()<layer->bbox->getBottomY()?map->bbox->getBottomY():layer->bbox->getBottomY());
+    map->bbox->setLeftX(map->bbox->getLeftX()<layer->bbox->getLeftX()?map->bbox->getLeftX():layer->bbox->getLeftX());
+    map->bbox->setRightX(map->bbox->getRightX()>layer->bbox->getRightX()?map->bbox->getRightX():layer->bbox->getRightX());
+
+    //first = true;//每次读入新的地图都会修改地图的范围。?是否需要，arcgis没有进行更改，
+    map2Vao(layer);//每次新读入数据对当前的数据进行调制
 }
 
 void GLwidget::RetrievePaint(QVector<Metadata *> selectNew, QVector<Metadata *> deselect)
@@ -293,66 +325,209 @@ void GLwidget::ChangeSelect()
         selectChange =false;
 }
 
-void GLwidget::map2Vao()
+SfsMap *GLwidget::getMap() const
+{
+    return map;
+}
+
+void GLwidget::setMap(SfsMap *value)
+{
+    map = value;
+}
+
+void GLwidget::map2Vao(SfsLayer *layer)
 {
     makeCurrent();//这一句很重要，将当前的OpenGL作为 当前操作的上下文 context，如果不添加这一句就绘制不出来，因为paintGL里是对这个函数有调用的
 
       //There is no need to call makeCurrent() because this has already been done when this function is called.
      //Before invoking this function, the context and the framebuffer are bound, and the viewport is set up by a call to glViewport(). No other state is set and no clearing or drawing is performed by the framework.
-    if(render!=nullptr&&!move&&first)
+    if(layer!=nullptr&&!move)
     {
-        //第一次读入数据的时候来调整
-            QOpenGLBuffer *VBO;
-            glClearColor(0.4, 0.2, 0.9, 0.5);
-            glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-            getOriginBox(first);
-            //读取地图里的数据，然后对数据进行缓存，将其保存到VBO内，在每次绘制的时候都调用即可
-        QVector<GLfloat> data;//存储数据
-        SfsLayer *layer = render->map->layers->value(0);//只是单图层，后期改正
-        for(int j=0;j<layer->geometries->size();j++)
+        QOpenGLBuffer *VBO;
+        glClearColor(0.1, 0.2, 0.9, 0.5);
+        glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+        getOriginBox(first);
+        //读取地图里的数据，然后对数据进行缓存，将其保存到VBO内，在每次绘制的时候都调用即可
+        QVector<GLfloat> data;//存储数据,使用vector 初始不判断有多大，实际上vector的数据在内存里也是连续存储的
+        GeoType type = layer->getGeometype();
+        if(type==Sfs_Polygon)
         {
-            //图层内的数据循环，得到每一个要素的集合数据，然后将这些数据缓存进VBO内
-           if(layer->geometries->value(j)->GeometryType()!=Sfs_Polygon)
-               continue;
-           SfsPolygon *polygon =(SfsPolygon *)layer->geometries->value(j);
-           for(int i=0;i<polygon->boundaries->value(0)->pts->size();i++)
-           {
-               GLfloat x= polygon->boundaries->value(0)->pts->value(i)->x;
-               GLfloat y = polygon->boundaries->value(0)->pts->value(i)->y;
-               data.append(x);
-               data.append(y);
-           }
-//               m_shaderProgram->bind();//实际上在配置VAO和VBO时根本上是不需要着色器绑定的
-           VBO = new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
-           VBOs->append(VBO);
-           QOpenGLVertexArrayObject *VAO = new QOpenGLVertexArrayObject(this);
-           VAOs->append(VAO);
-           VAO->create();
-           VAO->bind();
-           VAO->setProperty("data_num",data.size());
+            //如果是面要素
+            for(int j=0;j<layer->geometries->size();j++)
+            {
+                //图层内的数据循环，得到每一个要素的集合数据，然后将这些数据缓存进VBO内
+               //建立索引缓冲对
+               QOpenGLBuffer *IBO;
+               SfsPolygon *polygon =(SfsPolygon *)layer->geometries->value(j);
+                //m_shaderProgram->bind();//实际上在配置VAO和VBO时根本上是不需要着色器绑定的
+               VBO = new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
+               QOpenGLVertexArrayObject *VAO = new QOpenGLVertexArrayObject(this);
+               VAOs->append(VAO);
+               IBO = new QOpenGLBuffer(QOpenGLBuffer::IndexBuffer);
+               VAO->create();
+               VAO->bind();
+               //为VAO配置信息，配置点的个数，配置数据类型 vertex_num
+               VBO->create();
+               VBO->bind();
+               IBO->create();
+               IBO->bind();
+               IBO->setUsagePattern(QOpenGLBuffer::StaticDraw);
+               VBO->setUsagePattern(QOpenGLBuffer::StaticDraw);
+               //获取多边形边数。第一条边为外部边界，此后若有边，则为孔洞边界
+                int polygonSize = polygon->boundaries->size();//获取边的条数
+                //构建gpc_polygon
+                gpc_polygon* gpcPolygon = new gpc_polygon;
+                gpcPolygon->num_contours = polygonSize;
+                gpcPolygon->contour = new gpc_vertex_list[polygonSize];
+                gpcPolygon->hole = new int[polygonSize];
 
-           VBO->create();
-           VBO->bind();
-           VBO->setUsagePattern(QOpenGLBuffer::StaticDraw);
-           VBO->allocate(data.data(),data.size()*sizeof (float));
+                //为gpcPolygon的hole赋值。外部边界为0， 内部边界为1
+                gpcPolygon->hole[0] = 0;//第一个外边界
+                for(int i = 1; i < polygonSize; i++){
+                    //如果有内边界就赋值
+                    gpcPolygon->hole[i] = 1;
+                }
+                //遍历多边形每一条边，绘制每一条边，并为gpcPolygon赋值
+                for(int i = 0; i < polygonSize; i++){
+                    //初始化gpcPolygon每一条边
+                    SfsLineString* line = polygon->boundaries->at(i);
+                    int lineSize = line->pts->size();
+                    gpcPolygon->contour[i].num_vertices = lineSize;
+                    gpcPolygon->contour[i].vertex = new gpc_vertex[lineSize];
+                    //为gpcPolygon的每一条边赋值，为绘制每一条边做准备
+                    float* lineVtxs = new float[lineSize * 2];
+                    for(int j = 0; j < lineSize; j++){
+                        float x = line->pts->at(j)->x;
+                        float y = line->pts->at(j)->y;
+                        lineVtxs[j * 2] = x;
+                        lineVtxs[j * 2 + 1] = y;
+                        gpcPolygon->contour[i].vertex[j] = buildVertex(x, y);
+                    }
+                }
+                //三角化gpcPolygon，得到结果数组。
+                //初始化gpc_tristrip
+                gpc_tristrip* tristrip = new gpc_tristrip;
+                tristrip->num_strips = 0;
+                tristrip->strip = nullptr;
+                gpc_polygon_to_tristrip(gpcPolygon, tristrip);//GL_TRIANGLE_STRIP ，tristrip是一种特殊的三角网，没有记录重复顶点，
+                //得到结果为多个tristrip OpenGL函数知道怎么绘制一个tristrip，这里因为每个结果都是一个tristrip 所以必须要灵活的构建，
+                //记录 tristrip的个数，每个多边形是由多个tristrip构成，导致每个都要记录
+                QVector<int> index;//索引缓冲对象
+                int tr_index=0,triangles = 0;
+                for (int i=0; i<tristrip->num_strips; i++) {
+                    //得到每个tristrip
+                    gpc_vertex_list list = tristrip->strip[i];
+                    //每一次先获取三个点的位置
+                    index.append(tr_index);
+                    index.append(tr_index+1);
+                    index.append(tr_index+2);
+                    data.append(list.vertex[0].x);
+                    data.append(list.vertex[0].y);
+                    data.append(list.vertex[1].x);
+                    data.append(list.vertex[1].y);
+                    data.append(list.vertex[2].x);
+                    data.append(list.vertex[2].y);
+                    tr_index = tr_index+3;//记录的是顶点数组内点的索引值
+                    triangles++;
+                    for(int j=3;j<list.num_vertices;j++){
+                        //每次加入一个点，但是IBO内加入的一个三角形的索引
+                        index.append(tr_index-2);
+                        index.append(tr_index-1);
+                        index.append(tr_index);
+                        data.append(list.vertex[j].x);
+                        data.append(list.vertex[j].y);
+                        tr_index = tr_index+1;//记录的是三角形的数据
+                        triangles++;
+                    }
+                }
+                //VAO设置绘制类型和要素个数
+                VAO->setProperty("vertex_num",index.size());
+                VAO->setProperty("geo_type",QVariant(Sfs_Polygon));
+                IBO->allocate(index.data(),index.size()*sizeof (int));//索引缓冲对赋值
+                VBO->allocate(data.data(),data.size()*sizeof (float));
+                glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
+                glEnableVertexAttribArray(0);//这才是配置顶点顶点数据的正确方法，这样配置的属性主要是buffer里的即当前VBO里的数据，同时也需要对于好一个着色器
 
-           glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
-           glEnableVertexAttribArray(0);//这才是配置顶点顶点数据的正确方法，这样配置的属性主要是buffer里的即当前VBO里的数据，同时也需要对于好一个着色器
+                //这种配置方法较为灵活，主要是着色器来调动，可以保证万无一失
+               // attrPos =  m_shaderProgram->attributeLocation("attrPos");
+               // m_shaderProgram->setAttributeBuffer(attrPos,GL_FLOAT,0,2,2*sizeof (float));
+               // m_shaderProgram->enableAttributeArray(attrPos);
 
-           //这种配置方法较为灵活，主要是着色器来调动，可以保证万无一失
-
-//               attrPos =  m_shaderProgram->attributeLocation("attrPos");
-//               m_shaderProgram->setAttributeBuffer(attrPos,GL_FLOAT,0,2,2*sizeof (float));
-//               m_shaderProgram->enableAttributeArray(attrPos);
-
-
-           VBO->release();
-           VAO->release();//解除绑定
-//               m_shaderProgram->release();
-           data.clear();
-           ModelView.setToIdentity();
-           Project.setToIdentity();
+                VAO->release();//解除绑定
+                VBO->release();
+                IBO->release();
+                delete VBO;
+                VBO = nullptr;
+                delete IBO;
+                IBO = nullptr;
+                //VAO->release();//解除绑定
+                //m_shaderProgram->release();
+                data.clear();
+                ModelView.setToIdentity();
+                Project.setToIdentity();
+                gpc_free_tristrip(tristrip);
+                gpc_free_polygon(gpcPolygon);
+            }
         }
+        else if(type==Sfs_LineString)
+        {
+            for(int j=0;j<layer->geometries->size();j++)
+            {
+               VBO = new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
+               QOpenGLVertexArrayObject *VAO = new QOpenGLVertexArrayObject(this);
+               VAOs->append(VAO);
+               VAO->create();
+               VAO->bind();
+               //为VAO配置信息，配置点的个数，配置数据类型 vertex_num
+               VBO->create();
+               VBO->bind();
+               VBO->setUsagePattern(QOpenGLBuffer::StaticDraw);
+               SfsLineString *linestring = (SfsLineString*)layer->geometries->value(j);
+               for(int i=0;i<linestring->pts->size();i++){
+                   data.append(linestring->PointN(i)->x);
+                   data.append(linestring->PointN(i)->y);
+               }
+               VBO->allocate(data.data(),data.size()*sizeof(float));
+               VAO->setProperty("vertex_num",data.size()/2);
+               VAO->setProperty("geo_type",QVariant(Sfs_LineString));
+               glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
+               glEnableVertexAttribArray(0);//这才是配置顶点顶点数据的正确方法，这样配置的属性主要是buffer里的即当前VBO里的数据，同时也需要对于好一个着色器
+               VAO->release();
+               VBO->release();
+               delete VBO;
+               VBO = nullptr;
+               data.clear();
+           }
+        }
+        else if(type==Sfs_Point){
+            //只有点数据
+            VBO = new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
+            QOpenGLVertexArrayObject *VAO = new QOpenGLVertexArrayObject(this);
+            VAOs->append(VAO);
+            VAO->create();
+            VAO->bind();
+            //为VAO配置信息，配置点的个数，配置数据类型 vertex_num
+            VBO->create();
+            VBO->bind();
+            VBO->setUsagePattern(QOpenGLBuffer::StaticDraw);
+            for(int j=0;j<layer->geometries->size();j++){
+                SfsPoint *pt =(SfsPoint*)layer->geometries->value(j);
+                data.append(pt->x);
+                data.append(pt->y);
+            }
+            VBO->allocate(data.data(),data.size()*sizeof(float));
+            VAO->setProperty("vertex_num",data.size()/2);
+            VAO->setProperty("geo_type",QVariant(Sfs_Point));
+            glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
+            glEnableVertexAttribArray(0);//这才是配置顶点顶点数据的正确方法，这样配置的属性主要是buffer里的即当前VBO里的数据，同时也需要对于好一个着色器
+            VAO->release();
+            VBO->release();
+            delete VBO;
+            VBO = nullptr;
+            data.clear();
+        }
+        ModelView.setToIdentity();
+        Project.setToIdentity();
         first = false;
         transform();
     }
@@ -376,7 +551,6 @@ void GLwidget::ModelTrans()
         ModelView.translate(change_x,change_y);
     if(move)
         ModelView.translate(change_x+tem_x,change_y+tem_y);
-
     ModelView.scale(scale,scale);
     m_shaderProgram->setUniformValue("modelview",ModelView);
     m_shaderProgram->release();
@@ -399,10 +573,10 @@ void GLwidget::getOriginBox(bool MapBox)
     //得到地图的外边界，只有第一次时才需要，其他绘制时不再需要
     if(MapBox)
     {
-        lx = render->map->bbox->getLeftX();
-        rx = render->map->bbox->getRightX();
-        ty = render->map->bbox->getTopY();
-        by = render->map->bbox->getBottomY();
+        lx = map->bbox->getLeftX();
+        rx = map->bbox->getRightX();
+        ty = map->bbox->getTopY();
+        by = map->bbox->getBottomY();
         change_x = 0;//屏幕坐标x的偏移量，（实际的偏移）
         change_y = 0;//y的偏移量，都是实际偏移
     }
@@ -418,9 +592,6 @@ void GLwidget::View2World(SfsPoint *s_pt, QPoint *q_pt)
       GLdouble object_z;
       int mouse_x = q_pt->x();
       int mouse_y = q_pt->y();
-
-
-
 
       glMatrixMode(GL_MODELVIEW);
       glLoadIdentity();

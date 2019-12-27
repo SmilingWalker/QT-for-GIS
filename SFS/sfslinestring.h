@@ -1,8 +1,8 @@
 #ifndef SFSLINESTRING_H
 #define SFSLINESTRING_H
 #include<qvector.h>
-#include<sfsgeometry.h>
-#include<sfspoint.h>
+#include<SFS/sfsgeometry.h>
+#include<SFS/sfspoint.h>
 
 class SfsLineString : public SfsGeometry
 {
@@ -15,7 +15,7 @@ public:
     bool IsClosed();
 public:
     QVector<SfsPoint *> *pts;
-    int GeometryType();
+    GeoType GeometryType();
     int Dimension();
 };
 

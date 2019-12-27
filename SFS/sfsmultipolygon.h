@@ -1,7 +1,7 @@
 #ifndef SFSMULTIPOLYGON_H
 #define SFSMULTIPOLYGON_H
-#include<sfsgeometry.h>
-#include<sfspolygon.h>
+#include<SFS/sfsgeometry.h>
+#include<SFS/sfspolygon.h>
 #include<qvector.h>
 class SfsMultiPolygon : public SfsGeometry
 {
@@ -12,7 +12,7 @@ public:
 public:
     QVector<SfsPolygon*> * polygons;
 
-    int GeometryType();
+    GeoType GeometryType();
     int Dimension();
 };
 

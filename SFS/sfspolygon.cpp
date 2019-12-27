@@ -23,7 +23,7 @@ SfsLineString *SfsPolygon::interioRingrN(int n)
     else return nullptr;
 }
 
-int SfsPolygon::GeometryType()
+GeoType SfsPolygon::GeometryType()
 {
     return Sfs_Polygon;
 }

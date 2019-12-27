@@ -1,4 +1,4 @@
-#include "sfsgeometrycollection.h"
+#include "SFS/sfsgeometrycollection.h"
 
 SfsGeometryCollection::SfsGeometryCollection()
 {
@@ -17,7 +17,7 @@ SfsGeometry *SfsGeometryCollection::geometryN(int n)
     }
     else return nullptr;
 }
-int SfsGeometryCollection::GeometryType()
+GeoType SfsGeometryCollection::GeometryType()
 {
     return Sfs_GeometryCollection;
 }

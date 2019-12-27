@@ -1,5 +1,5 @@
 #include "prquadtree.h"
-#include<sfslayer.h>
+#include<SFS/sfslayer.h>
 
 PRQuadTree::PRQuadTree(QObject *parent) : QObject(parent)
 {

@@ -3,7 +3,7 @@
 #include<qdebug.h>
 #include<qopenglwidget.h>
 #include<qpainter.h>
-#include<sfsrender.h>
+#include<SFS/sfsrender.h>
 #include<gl/GL.h>
 #include<qopenglfunctions.h>
 #include<gl/GLU.h>
@@ -11,7 +11,7 @@
 #include<qevent.h>
 #include<QMouseEvent>
 #include<qpoint.h>
-#include<sfspoint.h>
+#include<SFS/sfspoint.h>
 #include<qobject.h>
 #include<GLES3/gl3.h>
 #include<qopenglfunctions_3_3_core.h>
@@ -26,6 +26,11 @@
 #include<metadata.h>
 #include<metadata.h>
 #include<prquadtree.h>
+#include<SFS/sfsmap.h>
+#include<SFS/sfslayer.h>
+
+
+
 
 
 class GLwidget : public QOpenGLWidget,protected QOpenGLFunctions_3_3_Core
@@ -36,7 +41,7 @@ public:
     ~ GLwidget() override;
 
 public slots:
-    void animate(SfsRender *render);
+    void animate(SfsLayer *layer);
     void RetrievePaint(QVector<Metadata*> selectNew,QVector<Metadata*> deselect);
     void clearSelect();
     void ChangeSelect();
@@ -64,23 +69,26 @@ public:
     GLuint MapTexture;//地图纹理数据
 
     int attrPos;//着色器程序的数据索引值
-    QVector<QOpenGLBuffer *> *VBOs,*IBOs;// 顶点缓冲，和索引缓冲
+//    QVector<QOpenGLBuffer *> *VBOs,*IBOs;// 顶点缓冲，和索引缓冲 //这些对象都是不需要的，因为在实际过程中，数据都会绑定到VAO内部，不会再去从内存中读取IBO和VBO的值
     QOpenGLShaderProgram *m_shaderProgram;//着色器程序
-    QVector<QOpenGLVertexArrayObject*> *VAOs;//顶点数组
+    QVector<QOpenGLVertexArrayObject*> *VAOs;//顶点数组,
     QOpenGLShader *m_FragmentShader,*m_VertexShader;//着色器
     QMatrix4x4 Project,ModelView;//投影矩阵，和模视转换矩阵
     bool selectChange;
     PRQuadTree *PRtree;
 private:
     //私有数据
-    SfsRender* render;
+    SfsMap *map;
 
 public:
     //公有函数
-    void map2Vao();//将数据存储到 VAO里面，重绘时只管VAO而不再处理 map数据
+    void map2Vao(SfsLayer *layer);//将数据存储到 VAO里面，重绘时只管VAO而不再处理 map数据
     void transform();//进行坐标转换的函数
     void ModelTrans();//进行平移坐标转换
     void ProjectTrans();//进行投影坐标转换
+    SfsMap *getMap() const;
+    void setMap(SfsMap *value);
+
 private:
     //私有函数
     void getOriginBox(bool MapBox);
@@ -91,6 +99,7 @@ private:
 
 signals:
     void StatsXY(SfsPoint* s_pt,QPoint* q_pt);
+    void SetClick(Metadata * data);
     // QOpenGLWidget interface
 protected:
     void initializeGL() override;

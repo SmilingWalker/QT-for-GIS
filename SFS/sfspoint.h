@@ -1,6 +1,6 @@
-#ifndef SFSPOINT_H
+﻿#ifndef SFSPOINT_H
 #define SFSPOINT_H
-#include<sfsgeometry.h>
+#include<SFS/sfsgeometry.h>
 #define  esp 1e-12
 #include<math.h>
 class SfsPoint : public SfsGeometry
@@ -12,7 +12,7 @@ public:
 public:
     double x;//x的坐标
     double y;//y的坐标
-    int GeometryType();
+    GeoType GeometryType();
     int Dimension();
 };
 

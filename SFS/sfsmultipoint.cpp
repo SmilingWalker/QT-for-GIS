@@ -5,7 +5,7 @@ SfsMultiPoint::SfsMultiPoint()
     pts = new QVector<SfsPoint*>;
 }
 
-int SfsMultiPoint::GeometryType()
+GeoType SfsMultiPoint::GeometryType()
 {
     return Sfs_MultiPoint;
 }

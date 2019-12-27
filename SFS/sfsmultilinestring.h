@@ -1,9 +1,9 @@
 #ifndef SFSMULTILINESTRING_H
 #define SFSMULTILINESTRING_H
-#include<sfsgeometry.h>
-#include<sfsgeometrycollection.h>
+#include<SFS/sfsgeometry.h>
+#include<SFS/sfsgeometrycollection.h>
 #include<qvector.h>
-#include<sfslinestring.h>
+#include<SFS/sfslinestring.h>
 class SfsMultiLineString : public SfsGeometry
 {
 public:
@@ -13,7 +13,7 @@ public:
 public:
     QVector<SfsLineString *> *lineStrings;
 
-    int GeometryType();
+    GeoType GeometryType();
     int Dimension();
 };
 

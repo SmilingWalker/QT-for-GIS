@@ -1,4 +1,4 @@
-#include "sfslinestring.h"
+#include "SFS/sfslinestring.h"
 
 SfsLineString::SfsLineString()
 {
@@ -13,7 +13,7 @@ int SfsLineString::numPoints()
 
 SfsPoint* SfsLineString::PointN(int n)
 {
-    if(n<numPoints()-1)
+    if(n<=numPoints()-1)
         return pts->value(n);
     else {
         return nullptr;
@@ -37,7 +37,7 @@ bool SfsLineString::IsClosed()
     else
         return false;
 }
-int SfsLineString::GeometryType()
+GeoType SfsLineString::GeometryType()
 {
     return Sfs_LineString;
 }

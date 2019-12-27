@@ -1,12 +1,13 @@
 <RCC>
     <qresource prefix="/new/icon">
-        <file>map.ico</file>
-        <file>zoom.ico</file>
-        <file>search.ico</file>
-        <file>move.ico</file>
-        <file>clear_delete.ico</file>
-        <file>clear.ico</file>
-        <file>clear1.ico</file>
-        <file>select.ico</file>
+        <file>icos/clear.ico</file>
+        <file>icos/clear_delete.ico</file>
+        <file>icos/clear1.ico</file>
+        <file>icos/layerSearch.ico</file>
+        <file>icos/map.ico</file>
+        <file>icos/move.ico</file>
+        <file>icos/search.ico</file>
+        <file>icos/select.ico</file>
+        <file>icos/zoom.ico</file>
     </qresource>
 </RCC>

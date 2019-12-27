@@ -11,7 +11,6 @@ MainWindow::MainWindow(QWidget *parent)
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
-    map = new SfsMap();
     fileReader = new FileReader();
     connect(this,&MainWindow::RenderMap,ui->glwidget,&GLwidget::animate);
     connect(this,&MainWindow::SetTree,ui->layerTree,&LayerTree::AddLayer);
@@ -19,12 +18,11 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->glwidget,SIGNAL(StatsXY(SfsPoint*,QPoint*)),this,SLOT(StatusBarXY(SfsPoint*,QPoint*)));
     connect(this,&MainWindow::clearSelect,ui->glwidget,&GLwidget::clearSelect);
     connect(this,&MainWindow::SelectionChange,ui->glwidget,&GLwidget::ChangeSelect);
+    connect(ui->glwidget,&GLwidget::SetClick,this,&MainWindow::ClickSelect);
     ui->layerTree->setStyleSheet( "QTreeView::item:hover{background-color:rgb(0,255,0)}"
                                                  "QTreeView::item:selected{background-color:rgb(255,0,0)}");
     CPLSetConfigOption("GDAL_DATA","D:/gdal2.4/data");
 
-
-    map->bbox->setBoundary(DBL_MIN,DBL_MAX,DBL_MAX,DBL_MIN);
     search = false;
     SearchTable = nullptr;
     DataBase = new ContentDB(this);//建立文本数据库
@@ -41,7 +39,6 @@ MainWindow::~MainWindow()
 void MainWindow::on_actionGeoJSON_triggered()
 {
     //open GeoJSON file
-
     QString fileName = QFileDialog::getOpenFileName(this);
     if(!fileName.isEmpty())
     {
@@ -55,22 +52,15 @@ void MainWindow::on_actionGeoJSON_triggered()
             geoFile.close();
             QJsonDocument geojson = QJsonDocument::fromJson(geoarray);
             SfsLayer *layer = new SfsLayer();
-            map->layers->append(layer);
             fileReader->GeoJsonReader(&geojson,layer);
             SetTree(layer);
-            //map的范围更新
-            map->bbox->setTopY(map->bbox->getTopY()>layer->bbox->getTopY()?map->bbox->getTopY():layer->bbox->getTopY());
-            map->bbox->setBottomY(map->bbox->getBottomY()<layer->bbox->getBottomY()?map->bbox->getBottomY():layer->bbox->getBottomY());
-            map->bbox->setLeftX(map->bbox->getLeftX()<layer->bbox->getLeftX()?map->bbox->getLeftX():layer->bbox->getLeftX());
-            map->bbox->setRightX(map->bbox->getRightX()>layer->bbox->getRightX()?map->bbox->getRightX():layer->bbox->getRightX());
-        }
+            RenderMap(layer);
 
-        SfsRender *rd = new SfsRender(map);
-        render.append(rd);
-        RenderMap(render.last());
+        }
     }
 
 }
+
 void MainWindow::LoadGeoJsonFile(QString filename)
 {
     //以不复用
@@ -86,9 +76,6 @@ void MainWindow::on_actionShapfile_triggered()
         else {
             LoadShpfile(fileName);
         }
-        SfsRender *rd = new SfsRender(map);
-        render.append(rd);
-        RenderMap(render.last());
     }
 
 }
@@ -105,35 +92,19 @@ void MainWindow::LoadShpfile(QString filename)
     SfsLayer *layer = new SfsLayer();
     fileReader->ShpfileReader(pShp,layer);
     SetTree(layer);//设置图层树
-    //map的范围更新
-    map->bbox->setTopY(map->bbox->getTopY()>layer->bbox->getTopY()?map->bbox->getTopY():layer->bbox->getTopY());
-    map->bbox->setBottomY(map->bbox->getBottomY()<layer->bbox->getBottomY()?map->bbox->getBottomY():layer->bbox->getBottomY());
-    map->bbox->setLeftX(map->bbox->getLeftX()<layer->bbox->getLeftX()?map->bbox->getLeftX():layer->bbox->getLeftX());
-    map->bbox->setRightX(map->bbox->getRightX()>layer->bbox->getRightX()?map->bbox->getRightX():layer->bbox->getRightX());
-    map->layers->append(layer);
+
+    //**传递图层到glwidget
+    RenderMap(layer);
 
 }
 
-void MainWindow::LoadPostgreSQL(QString param,QString layerName)
+void MainWindow::LoadPostgreSQL(OGRLayer *ogrlayer)
 {
-    //加载数据库
-    GDALAllRegister();
-    GDALDataset *pDos =nullptr;
-    qDebug()<<layerName;
-    pDos = (GDALDataset *)GDALOpenEx(param.toStdString().c_str(),GDAL_OF_VECTOR,nullptr,nullptr,nullptr);
-    if(pDos==nullptr)
-        qDebug()<<"database open failed";
-    else
-        {
-        SfsLayer *layer = new SfsLayer();
-        map->layers->append(layer);
-        //map的范围更新
-        map->bbox->setTopY(map->bbox->getTopY()>layer->bbox->getTopY()?map->bbox->getTopY():layer->bbox->getTopY());
-        map->bbox->setBottomY(map->bbox->getBottomY()<layer->bbox->getBottomY()?map->bbox->getBottomY():layer->bbox->getBottomY());
-        map->bbox->setLeftX(map->bbox->getLeftX()<layer->bbox->getLeftX()?map->bbox->getLeftX():layer->bbox->getLeftX());
-        map->bbox->setRightX(map->bbox->getRightX()>layer->bbox->getRightX()?map->bbox->getRightX():layer->bbox->getRightX());
-        fileReader->LoadPostGIS(pDos,layer,layerName);
-    }
+
+    SfsLayer *layer = new SfsLayer();
+    fileReader->LoadPostGIS(ogrlayer,layer);
+    //传递图层到glwidget
+    RenderMap(layer);
 }
 
 void MainWindow::LayerNone()
@@ -151,9 +122,35 @@ void MainWindow::retrieve()
 {
     QString query = searchEdit->text();
     connect(this,&MainWindow::retrieveNew,SearchTable,&retrieveTable::RetrieveRes);
-    retrieveNew(map,query);
+    retrieveNew(ui->glwidget->getMap(),query);
 }
 
+void MainWindow::ClickSelect(Metadata * meta)
+{
+    //首先，点选结果到了之后，需要进行激活搜索框，如果已经激活则进行数据传递并且清除当前，搜索框结果。
+    if(SearchTable==nullptr){
+        //如果没有搜索框则进行建立，如果有则跳过,同时将搜索框的搜索信息设置为true
+        search = true;
+        ui->actionSearch->setChecked(true);
+        QIcon ico = QIcon("D:/QtProject/GeoJSON/icos/search.ico");
+        searchEdit = new QLineEdit(this);
+        searchButton = new QPushButton(this);
+        QRect rect =  ui->toolBar->geometry();
+        searchEdit->setGeometry(rect.x()+rect.width()*0.7,rect.y(),rect.width()*0.3,rect.height());
+        searchButton->setGeometry(rect.x()+rect.width()*0.95,rect.y(),rect.width()*0.05,rect.height());
+        searchButton->setIcon(ico);
+        searchButton->show();
+        searchEdit->show();
+        SearchTable = new retrieveTable(this);
+        SearchTable->setGeometry(rect.x()+rect.width()*0.7,rect.y()+rect.height(),rect.width()*0.3,rect.height()*5);
+        connect(searchButton,&QPushButton::clicked,this,&MainWindow::retrieve);
+        connect(SearchTable,SIGNAL(RetrievePaint(QVector<Metadata*>,QVector<Metadata*>)),ui->glwidget,SLOT(RetrievePaint(QVector<Metadata*>,QVector<Metadata*>)));
+        connect(this,&MainWindow::ShowClick,SearchTable,&retrieveTable::ClickSelect);
+    }
+    //目前已经有了搜索框，需要清除搜索框当前的搜索内容，并且将新数据传递过去
+    ShowClick(meta);
+
+}
 
 void MainWindow::on_actionPostGIS_triggered()
 {
@@ -170,8 +167,9 @@ void MainWindow::on_actionPostGIS_triggered()
     pDos = (GDALDataset *)GDALOpenEx(path,GDAL_OF_VECTOR,nullptr,nullptr,nullptr);
     if(pDos==nullptr)
         qDebug()<<"database open failed";
-    Connect *gis = new Connect(this);
-    gis->exec();
+    Connect *postlink = new Connect(this);
+    connect(postlink,&Connect::DBconnet,this,&MainWindow::LoadPostgreSQL);
+    postlink->exec();
 }
 
 void MainWindow::on_actionSearch_triggered()
@@ -192,7 +190,7 @@ void MainWindow::on_actionSearch_triggered()
 //    searchButton->show();
     if(!search)
     {
-        QIcon ico = QIcon("D:/QtProject/GeoJSON/search.ico");
+        QIcon ico = QIcon("D:/QtProject/GeoJSON/icos/search.ico");
         searchEdit = new QLineEdit(this);
         searchButton = new QPushButton(this);
         QRect rect =  ui->toolBar->geometry();
@@ -227,16 +225,18 @@ void MainWindow::on_actionClear_triggered()
 
 void MainWindow::on_QuarTree_triggered()
 {
-    //索引应该是一个图层的，每一个图层可以有一个索引
+    //索引应该是一个图层的，每一个图层可以有一个索引，建立索引
+    SfsMap* map = ui->glwidget->getMap();
     for(int i=0;i<map->layers->size();i++){
         SfsLayer * layer = map->layers->value(i);
+        if(layer->TreeIndex!=nullptr)
+            continue;
         BoundaryBox *bbox = layer->bbox;
         if(layer->TreeIndex==nullptr)
         {
             PRQuadTree *tree = new PRQuadTree(this);//新建一个四叉树索引
             //递归计算，
             tree->GenerateTree(layer,*bbox);
-
             layer->TreeIndex = tree;//交给图层来管理 索引数据
         }
     }

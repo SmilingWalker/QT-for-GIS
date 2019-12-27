@@ -16,7 +16,7 @@ SfsPolygon* SfsMultiPolygon::polygonN(int n)
     else return nullptr;
 }
 
-int SfsMultiPolygon::GeometryType()
+GeoType SfsMultiPolygon::GeometryType()
 {
     return Sfs_MultiPolygon;
 }

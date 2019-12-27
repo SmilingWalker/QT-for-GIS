@@ -1,4 +1,4 @@
-#include "sfsgeometry.h"
+#include "SFS/sfsgeometry.h"
 
 SfsGeometry::~SfsGeometry()
 {
@@ -20,6 +20,7 @@ SfsGeometry::SfsGeometry()
     bbox = new BoundaryBox();
     properties = new Properties();
 }
+
 
 SfsGeometry *SfsGeometry::boundary()
 {

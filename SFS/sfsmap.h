@@ -1,6 +1,6 @@
 #ifndef SFSMAP_H
 #define SFSMAP_H
-#include<sfslayer.h>
+#include"sfslayer.h"
 #include<qvector.h>
 
 class SfsMap

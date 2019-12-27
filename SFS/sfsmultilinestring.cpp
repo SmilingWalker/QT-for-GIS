@@ -1,4 +1,4 @@
-#include "sfsmultilinestring.h"
+#include "SFS/sfsmultilinestring.h"
 
 SfsMultiLineString::SfsMultiLineString()
 {
@@ -19,7 +19,7 @@ SfsLineString *SfsMultiLineString::LineStringN(int n)
     }
 }
 
-int SfsMultiLineString::GeometryType()
+GeoType SfsMultiLineString::GeometryType()
 {
     return Sfs_MultiLineString;
 }

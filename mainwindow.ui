@@ -141,7 +141,7 @@
   <action name="actionmove">
    <property name="icon">
     <iconset>
-     <normalon>:/new/icon/move.ico</normalon>
+     <normalon>:/new/icon/icos/move.ico</normalon>
     </iconset>
    </property>
    <property name="text">
@@ -151,7 +151,7 @@
   <action name="actionzoom">
    <property name="icon">
     <iconset>
-     <normalon>:/new/icon/zoom.ico</normalon>
+     <normalon>:/new/icon/icos/zoom.ico</normalon>
     </iconset>
    </property>
    <property name="text">
@@ -161,7 +161,7 @@
   <action name="actionSearch">
    <property name="icon">
     <iconset>
-     <normalon>:/new/icon/search.ico</normalon>
+     <normalon>:/new/icon/icos/search.ico</normalon>
     </iconset>
    </property>
    <property name="text">
@@ -170,8 +170,9 @@
   </action>
   <action name="actionClear">
    <property name="icon">
-    <iconset resource="resource.qrc">
-     <normaloff>:/new/icon/clear1.ico</normaloff>:/new/icon/clear1.ico</iconset>
+    <iconset>
+     <normalon>:/new/icon/icos/clear.ico</normalon>
+    </iconset>
    </property>
    <property name="text">
     <string>Clear</string>
@@ -188,7 +189,7 @@
    </property>
    <property name="icon">
     <iconset>
-     <normalon>:/new/icon/select.ico</normalon>
+     <normalon>:/new/icon/icos/select.ico</normalon>
     </iconset>
    </property>
    <property name="text">
@@ -208,8 +209,6 @@
    <header>layertree.h</header>
   </customwidget>
  </customwidgets>
- <resources>
-  <include location="resource.qrc"/>
- </resources>
+ <resources/>
  <connections/>
 </ui>

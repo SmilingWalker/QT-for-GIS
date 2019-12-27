@@ -3,7 +3,7 @@
 
 #include <QWidget>
 #include<qtableview.h>
-#include<sfsmap.h>
+#include<SFS/sfsmap.h>
 #include<metadata.h>
 #include<qvector.h>
 #include<qdebug.h>
@@ -24,6 +24,7 @@ public:
 public slots:
     void RetrieveRes(SfsMap *map,QString query);
     void ResSelect(QItemSelection selected,QItemSelection deselected);
+    void ClickSelect(Metadata* meta);
 
 public:
     QVector<Metadata*> result;//这是用于存储检索出来的数据的

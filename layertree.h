@@ -3,7 +3,7 @@
 
 #include <QWidget>
 #include<qtreewidget.h>
-#include<sfslayer.h>
+#include<SFS/sfslayer.h>
 #include<qdrag.h>
 #include<qmimedata.h>
 #include<qmenu.h>

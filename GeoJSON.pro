@@ -21,54 +21,64 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+    GPC/gpc.c \
+    SFS/sfsgeometry.cpp \
+    SFS/sfsgeometrycollection.cpp \
+    SFS/sfslayer.cpp \
+    SFS/sfslinestring.cpp \
+    SFS/sfsmap.cpp \
+    SFS/sfsmultilinestring.cpp \
+    SFS/sfsmultipoint.cpp \
+    SFS/sfsmultipolygon.cpp \
+    SFS/sfspoint.cpp \
+    SFS/sfspolygon.cpp \
+    SFS/sfsrender.cpp \
+    SLD/StringToColor.cpp \
+    SLD/ogcsld.cpp \
+    SLD/sldsettingform.cpp \
     boundarybox.cpp \
     connect.cpp \
     contentdb.cpp \
     filereader.cpp \
     glwidget.cpp \
     layertree.cpp \
+    layerview.cpp \
     main.cpp \
     mainwindow.cpp \
     metadata.cpp \
     properties.cpp \
     prquadtree.cpp \
     retrievetable.cpp \
-    sfsgeometry.cpp \
-    sfsgeometrycollection.cpp \
-    sfslayer.cpp \
-    sfslinestring.cpp \
-    sfsmap.cpp \
-    sfsmultilinestring.cpp \
-    sfsmultipoint.cpp \
-    sfsmultipolygon.cpp \
-    sfspoint.cpp \
-    sfspolygon.cpp \
-    sfsrender.cpp \
     std_reader.cpp
 
 HEADERS += \
+    GPC/gpc.h \
+    SFS/sfsgeometry.h \
+    SFS/sfsgeometrycollection.h \
+    SFS/sfslayer.h \
+    SFS/sfslinestring.h \
+    SFS/sfsmap.h \
+    SFS/sfsmultilinestring.h \
+    SFS/sfsmultipoint.h \
+    SFS/sfsmultipolygon.h \
+    SFS/sfspoint.h \
+    SFS/sfspolygon.h \
+    SFS/sfsrender.h \
+    SLD/StringToColor.h \
+    SLD/ogcsld.h \
+    SLD/sldsettingform.h \
     boundarybox.h \
     connect.h \
     contentdb.h \
     filereader.h \
     glwidget.h \
     layertree.h \
+    layerview.h \
     mainwindow.h \
     metadata.h \
     properties.h \
     prquadtree.h \
     retrievetable.h \
-    sfsgeometry.h \
-    sfsgeometrycollection.h \
-    sfslayer.h \
-    sfslinestring.h \
-    sfsmap.h \
-    sfsmultilinestring.h \
-    sfsmultipoint.h \
-    sfsmultipolygon.h \
-    sfspoint.h \
-    sfspolygon.h \
-    sfsrender.h \
     std_reader.h
 
 FORMS += \

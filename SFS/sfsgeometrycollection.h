@@ -1,6 +1,6 @@
 #ifndef SFSGEOMETRYCOLLECTION_H
 #define SFSGEOMETRYCOLLECTION_H
-#include<sfsgeometry.h>
+#include<SFS/sfsgeometry.h>
 #include<qvector.h>
 class SfsGeometryCollection : public SfsGeometry
 {
@@ -11,7 +11,7 @@ public:
 public:
     QVector<SfsGeometry *> *geometries;
 
-    int GeometryType();
+    GeoType GeometryType();
     int Dimension();
 };
 
