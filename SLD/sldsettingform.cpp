@@ -7,7 +7,7 @@
 
 SldSettingForm::SldSettingForm(OGCSld* sld) : QDialog()
 {
-    this->setWindowTitle(tr("设置SLD"));
+    this->setWindowTitle(QString::fromLocal8Bit("设置SLD"));
     setFixedSize(400, 340);
     this->sld = sld;
 

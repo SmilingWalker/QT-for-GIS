@@ -1040,3 +1040,113 @@ void FileReader::LoadPostGIS(OGRLayer *ogrlayer, SfsLayer *layer)
         layer->setGeometype(layer->geometries->value(0)->GeometryType());//为图层设置图层属性，图层至少有一个要素
         layer->bbox->setBoundary(maxY,minY,minX,maxX);
 }
+
+void FileReader::SldReader(QDomDocument *sldDoc, SfsLayer *layer)
+{
+    //set sld
+      QDomElement root = sldDoc->firstChildElement();
+      QDomElement namedLayer = root.firstChildElement("NamedLayer");
+      QDomElement userStyle = namedLayer.firstChildElement("UserStyle");
+      QDomElement featureTypeStyle = userStyle.firstChildElement("se:FeatureTypeStyle");
+      QDomElement rule = featureTypeStyle.firstChildElement("se:Rule");
+      OGCSld* sld = layer->render->getSld();
+
+      QDomElement symbolizer = rule.firstChildElement("se:PolygonSymbolizer");
+      if(!symbolizer.isNull()){
+          QDomElement fill = symbolizer.firstChildElement("se:Fill");
+          QDomNodeList fill_ = fill.childNodes();
+          int length = fill_.length();
+          for(int i = 0; i < length; i++){
+              QDomNode node = fill_.at(i);
+              QDomElement element = node.toElement();
+              if(element.attribute("name") == "fill"){
+                  QString color (element.text());
+                  QColor fillColor = stringToColor(color);
+                  sld->setFill(fillColor);
+              }
+              else if(element.attribute("name") == "fill-opacity"){
+
+              }
+          }
+
+          QDomElement stroke = symbolizer.firstChildElement("se:Stroke");
+          QDomNodeList stroke_ = stroke.childNodes();
+          length = stroke_.length();
+          for(int i = 0; i < length; i++){
+              QDomNode node = stroke_.at(i);
+              QDomElement element = node.toElement();
+              if(element.attribute("name") == "stroke"){
+                  QString color (element.text());
+                  QColor strokeColor = stringToColor(color);
+                  sld->setStroke(strokeColor);
+              }
+              else if(element.attribute("name") == "stroke-width"){
+                  QString width (element.text());
+                  int width_ = width.toInt();
+                  sld->setStroke_width(width_);
+              }
+          }
+      }
+
+      symbolizer = rule.firstChildElement("se:LineSymbolizer");
+      if(!symbolizer.isNull()){
+          QDomElement stroke = symbolizer.firstChildElement("se:Stroke");
+          QDomNodeList stroke_ = stroke.childNodes();
+          int length = stroke_.length();
+          for(int i = 0; i < length; i++){
+              QDomNode node = stroke_.at(i);
+              QDomElement element = node.toElement();
+              if(element.attribute("name") == "stroke"){
+                  QString color (element.text());
+                  QColor strokeColor = stringToColor(color);
+                  sld->setStroke(strokeColor);
+              }
+              else if(element.attribute("name") == "stroke-width"){
+                  QString width (element.text());
+                  int width_ = width.toInt();
+                  sld->setStroke_width(width_);
+              }
+          }
+      }
+      symbolizer = rule.firstChildElement("se:PointSymbolizer");
+      if(!symbolizer.isNull()){
+          QDomElement fill = symbolizer.firstChildElement("se:Fill");
+          QDomNodeList fill_ = fill.childNodes();
+          int length = fill_.length();
+          for(int i = 0; i < length; i++){
+              QDomNode node = fill_.at(i);
+              QDomElement element = node.toElement();
+              if(element.attribute("name") == "fill"){
+                  QString color (element.text());
+                  QColor fillColor = stringToColor(color);
+                  sld->setFill(fillColor);
+              }
+              else if(element.attribute("name") == "fill-opacity"){
+
+              }
+          }
+
+          QDomElement stroke = symbolizer.firstChildElement("se:Stroke");
+          QDomNodeList stroke_ = stroke.childNodes();
+          length = stroke_.length();
+          for(int i = 0; i < length; i++){
+              QDomNode node = stroke_.at(i);
+              QDomElement element = node.toElement();
+              if(element.attribute("name") == "stroke"){
+                  QString color (element.text());
+                  QColor strokeColor = stringToColor(color);
+                  sld->setStroke(strokeColor);
+              }
+              else if(element.attribute("name") == "stroke-width"){
+                  QString width (element.text());
+                  int width_ = width.toInt();
+                  sld->setStroke_width(width_);
+              }
+          }
+
+          QDomElement size = symbolizer.firstChildElement("se:Size");
+          QString size_ = size.text();
+          int Size = size_.toInt();
+          sld->setSize(Size);
+      }
+}

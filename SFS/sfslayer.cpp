@@ -7,6 +7,14 @@ SfsLayer::SfsLayer()
     geometries = new QVector<SfsGeometry*>;
     bbox = new BoundaryBox();
     TreeIndex = nullptr;
+    render = new SfsRender();
+    visible = true;
+}
+
+SfsLayer::~SfsLayer()
+{
+    if(render!=nullptr)
+        delete render;
     render = nullptr;
 }
 
@@ -28,4 +36,14 @@ GeoType SfsLayer::getGeometype() const
 void SfsLayer::setGeometype(const GeoType &value)
 {
     Geometype = value;
+}
+
+bool SfsLayer::getVisible() const
+{
+    return visible;
+}
+
+void SfsLayer::setVisible(bool value)
+{
+    visible = value;
 }

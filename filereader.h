@@ -19,6 +19,8 @@
 #include<properties.h>
 #include<metadata.h>
 #include<contentdb.h>
+#include<QDomDocument>
+#include<SLD/StringToColor.h>
 
 
 
@@ -30,6 +32,7 @@ public:
     void GeoJsonReader(QJsonDocument *geojson,SfsLayer* layer);
     void ShpfileReader(GDALDataset *pDoc,SfsLayer* layer);
     void LoadPostGIS(OGRLayer *ogrlayer, SfsLayer* layer);
+    void SldReader(QDomDocument* sldDoc, SfsLayer *layer);
 signals:
     void LayerNone();
 };

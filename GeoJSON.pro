@@ -3,7 +3,9 @@ QT       += positioning
 QT       += gui
 QT       += widgets
 QT       += opengl
+QT       += xml
 LIBS += -lopengl32 -lglu32
+
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 CONFIG += c++11
@@ -42,7 +44,6 @@ SOURCES += \
     filereader.cpp \
     glwidget.cpp \
     layertree.cpp \
-    layerview.cpp \
     main.cpp \
     mainwindow.cpp \
     metadata.cpp \
@@ -73,7 +74,6 @@ HEADERS += \
     filereader.h \
     glwidget.h \
     layertree.h \
-    layerview.h \
     mainwindow.h \
     metadata.h \
     properties.h \

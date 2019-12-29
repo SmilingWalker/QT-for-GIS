@@ -9,5 +9,8 @@
         <file>icos/search.ico</file>
         <file>icos/select.ico</file>
         <file>icos/zoom.ico</file>
+        <file>icos/layer1.ico</file>
+        <file>icos/layer2.ico</file>
+        <file>icos/layer3.ico</file>
     </qresource>
 </RCC>

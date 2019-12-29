@@ -9,6 +9,7 @@ class SfsRender
 {
 public:
     SfsRender();
+    ~SfsRender();
 public:
     OGCSld *getSld() const;
     void setSld(OGCSld *value);

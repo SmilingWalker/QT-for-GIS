@@ -2,6 +2,7 @@
 #include<SFS/sfspolygon.h>
 #include<GPC/gpc.h>
 #include<GPC/gpc.c>
+#include<QTime>
 gpc_vertex buildVertex(float x, float y)
 {
     gpc_vertex vertex;
@@ -32,7 +33,7 @@ GLwidget::GLwidget(QWidget *parent):QOpenGLWidget(parent)
     selectChange = false;
     //命名纹理对象
     //glGenTextures(1,&MapTexture)
-    VAOs = new QVector<QOpenGLVertexArrayObject*>();
+    VAO_Layer = new  QVector<QVector<QOpenGLVertexArrayObject*>*>();
 }
 
 GLwidget::~GLwidget()
@@ -80,7 +81,8 @@ void GLwidget::resizeGL(int w, int h)
 
 void GLwidget::paintGL()
 {
-
+    QTime t;
+    t.start();
 //    数据读取完成，之后需要交给绘图程序，进行绘制，绘图只需要处理绘图，不需要处理数据
     if(map->layers->size()!=0)
     {
@@ -91,20 +93,34 @@ void GLwidget::paintGL()
         //颜色配置信息
         m_shaderProgram->setUniformValue("color",0.9,0.2,0.5);
         //循环绘画
-        for(int i=0;i<VAOs->size();i++){
-            QOpenGLVertexArrayObject *VAO = VAOs->value(i);
-            VAO->bind();
-            if(VAO->property("geo_type").toInt()==Sfs_Polygon)
-            glDrawElements(GL_TRIANGLES,VAO->property("vertex_num").toInt(),GL_UNSIGNED_INT,(void*)0);
-            else if(VAO->property("geo_type").toInt()==Sfs_LineString){
-                glDrawArrays(GL_LINES,0,VAO->property("vertex_num").toInt());
+        for(int j=0;j<map->layers->size();j++){
+            SfsLayer *layer = map->layers->value(j);
+            if(!layer->getVisible())//如果图层不可见，就跳过
+                continue;
+            VAOs = LayerBingVAOs.find(layer).value();
+            for(int i=0;i<VAOs->size();i++){
+                QOpenGLVertexArrayObject *VAO = VAOs->value(i);
+                VAO->bind();
+                if(VAO->property("geo_type").toInt()==Sfs_Polygon)
+                {
+                    QColor  color = layer->render->getSld()->getFill();
+                    m_shaderProgram->setUniformValue("color",color.redF(),color.greenF(),color.blueF());
+                    glDrawElements(GL_TRIANGLES,VAO->property("vertex_num").toInt(),GL_UNSIGNED_INT,(void*)0);
+                }
+                else if(VAO->property("geo_type").toInt()==Sfs_LineString){
+                    glLineWidth(layer->render->getSld()->getStroke_width());
+                    QColor  color = layer->render->getSld()->getStroke();
+                    m_shaderProgram->setUniformValue("color",color.redF(),color.greenF(),color.blueF());
+                    glDrawArrays(GL_LINES,0,VAO->property("vertex_num").toInt());
+                }
+                else if(VAO->property("geo_type").toInt()==Sfs_Point)
+                {
+                    glPointSize(layer->render->getSld()->getSize());
+                    glDrawArrays(GL_POINTS,0,VAO->property("vertex_num").toInt());
+                }
+                VAO->release();
+               //m_shaderProgram->release();//不需要进行解绑，整个过程使用的是一个着色器程序
             }
-            else if(VAO->property("geo_type").toInt()==Sfs_Point)
-            {
-                glDrawArrays(GL_POINTS,0,VAO->property("vertex_num").toInt());
-            }
-            VAO->release();
-           //m_shaderProgram->release();//不需要进行解绑，整个过程使用的是一个着色器程序
         }
         if(Selection){
                 int prefix = 0;//前面是否有图层，有图层则附加值，图层要素个数
@@ -131,6 +147,7 @@ void GLwidget::paintGL()
         m_shaderProgram->release();
 
     }
+        qDebug("Rendering elapsed: %d ms", t.elapsed());
 }
 
 void GLwidget::mousePressEvent(QMouseEvent *event)
@@ -264,12 +281,15 @@ void GLwidget::wheelEvent(QWheelEvent *event)
 void GLwidget::animate(SfsLayer *layer)
 {
     map->layers->append(layer);
+    //一个图层对应一个VAOs，这样便于管理绘制程序
+    VAOs = new QVector<QOpenGLVertexArrayObject*>();
+    VAO_Layer->append(VAOs);
+    LayerBingVAOs[layer] = VAOs;
     //map的范围更新
     map->bbox->setTopY(map->bbox->getTopY()>layer->bbox->getTopY()?map->bbox->getTopY():layer->bbox->getTopY());
     map->bbox->setBottomY(map->bbox->getBottomY()<layer->bbox->getBottomY()?map->bbox->getBottomY():layer->bbox->getBottomY());
     map->bbox->setLeftX(map->bbox->getLeftX()<layer->bbox->getLeftX()?map->bbox->getLeftX():layer->bbox->getLeftX());
     map->bbox->setRightX(map->bbox->getRightX()>layer->bbox->getRightX()?map->bbox->getRightX():layer->bbox->getRightX());
-
     //first = true;//每次读入新的地图都会修改地图的范围。?是否需要，arcgis没有进行更改，
     map2Vao(layer);//每次新读入数据对当前的数据进行调制
 }
@@ -325,6 +345,38 @@ void GLwidget::ChangeSelect()
         selectChange =false;
 }
 
+void GLwidget::updateMap()
+{
+    update();
+}
+
+void GLwidget::ZoomToLayer(SfsLayer *layer)
+{
+    Project.setToIdentity();
+    ModelView.setToIdentity();
+    change_x = 0;
+    change_y = 0;
+    scale = 1;
+    lx = layer->bbox->getLeftX();
+    rx = layer->bbox->getRightX();
+    by = layer->bbox->getBottomY();
+    ty = layer->bbox->getTopY();
+    transform();
+    update();
+}
+
+void GLwidget::RemoveLayer(SfsLayer *layer)
+{
+    VAOs = LayerBingVAOs.find(layer).value();
+    qDeleteAll(VAOs->begin(),VAOs->end());//清除里面的数据
+    VAOs = nullptr;
+    LayerBingVAOs.remove(layer);
+    map->layers->removeOne(layer);
+    delete layer;
+    layer = nullptr;
+    update();
+}
+
 SfsMap *GLwidget::getMap() const
 {
     return map;
@@ -337,6 +389,8 @@ void GLwidget::setMap(SfsMap *value)
 
 void GLwidget::map2Vao(SfsLayer *layer)
 {
+    QTime t;
+    t.start();
     makeCurrent();//这一句很重要，将当前的OpenGL作为 当前操作的上下文 context，如果不添加这一句就绘制不出来，因为paintGL里是对这个函数有调用的
 
       //There is no need to call makeCurrent() because this has already been done when this function is called.
@@ -414,6 +468,7 @@ void GLwidget::map2Vao(SfsLayer *layer)
                 //记录 tristrip的个数，每个多边形是由多个tristrip构成，导致每个都要记录
                 QVector<int> index;//索引缓冲对象
                 int tr_index=0,triangles = 0;
+
                 for (int i=0; i<tristrip->num_strips; i++) {
                     //得到每个tristrip
                     gpc_vertex_list list = tristrip->strip[i];
@@ -440,6 +495,7 @@ void GLwidget::map2Vao(SfsLayer *layer)
                         triangles++;
                     }
                 }
+
                 //VAO设置绘制类型和要素个数
                 VAO->setProperty("vertex_num",index.size());
                 VAO->setProperty("geo_type",QVariant(Sfs_Polygon));
@@ -460,7 +516,7 @@ void GLwidget::map2Vao(SfsLayer *layer)
                 VBO = nullptr;
                 delete IBO;
                 IBO = nullptr;
-                //VAO->release();//解除绑定
+//                VAO->release();//解除绑定
                 //m_shaderProgram->release();
                 data.clear();
                 ModelView.setToIdentity();
@@ -531,9 +587,8 @@ void GLwidget::map2Vao(SfsLayer *layer)
         first = false;
         transform();
     }
+    qDebug("Clipping elapsed: %d ms", t.elapsed());
     update();
-
-
 }
 
 void GLwidget::transform()
@@ -565,7 +620,6 @@ void GLwidget::ProjectTrans()
     m_shaderProgram->bind();
     m_shaderProgram->setUniformValue("projection",Project);
     m_shaderProgram->release();
-
 }
 
 void GLwidget::getOriginBox(bool MapBox)

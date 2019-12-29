@@ -10,6 +10,7 @@ MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
 {
+
     ui->setupUi(this);
     fileReader = new FileReader();
     connect(this,&MainWindow::RenderMap,ui->glwidget,&GLwidget::animate);
@@ -19,14 +20,17 @@ MainWindow::MainWindow(QWidget *parent)
     connect(this,&MainWindow::clearSelect,ui->glwidget,&GLwidget::clearSelect);
     connect(this,&MainWindow::SelectionChange,ui->glwidget,&GLwidget::ChangeSelect);
     connect(ui->glwidget,&GLwidget::SetClick,this,&MainWindow::ClickSelect);
-    ui->layerTree->setStyleSheet( "QTreeView::item:hover{background-color:rgb(0,255,0)}"
-                                                 "QTreeView::item:selected{background-color:rgb(255,0,0)}");
+    connect(ui->layerTree,&LayerTree::updateMap,ui->glwidget,&GLwidget::updateMap);
+    connect(ui->layerTree,&LayerTree::LayerZoom,ui->glwidget,&GLwidget::ZoomToLayer);
+    connect(ui->layerTree,&LayerTree::RemoveLayer,ui->glwidget,&GLwidget::RemoveLayer);
+
     CPLSetConfigOption("GDAL_DATA","D:/gdal2.4/data");
 
     search = false;
     SearchTable = nullptr;
     DataBase = new ContentDB(this);//建立文本数据库
     Selection = false;
+    ui->layerTree->map = ui->glwidget->getMap();
 }
 
 MainWindow::~MainWindow()
@@ -105,6 +109,7 @@ void MainWindow::LoadPostgreSQL(OGRLayer *ogrlayer)
     fileReader->LoadPostGIS(ogrlayer,layer);
     //传递图层到glwidget
     RenderMap(layer);
+    ui->layerTree->AddLayer(layer);
 }
 
 void MainWindow::LayerNone()

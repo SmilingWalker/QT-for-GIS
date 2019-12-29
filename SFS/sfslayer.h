@@ -10,6 +10,7 @@ class SfsLayer
 {
 public:
     SfsLayer();
+    ~SfsLayer();
 public:
     QVector<SfsGeometry*> *geometries;
     BoundaryBox *bbox;
@@ -20,9 +21,13 @@ public:
     GeoType getGeometype() const;
     void setGeometype(const GeoType &value);
 
+    bool getVisible() const;
+    void setVisible(bool value);
+
 private:
     QString name;
     GeoType Geometype;
+    bool visible;
 };
 
 #endif // SFSLAYER_H

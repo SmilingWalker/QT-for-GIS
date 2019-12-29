@@ -2,6 +2,14 @@
 
 SfsRender::SfsRender()
 {
+    sld = new OGCSld();
+}
+
+SfsRender::~SfsRender()
+{
+    if(sld!=nullptr)
+        delete sld;
+    sld = nullptr;
 }
 
 OGCSld *SfsRender::getSld() const

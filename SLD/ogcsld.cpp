@@ -2,10 +2,10 @@
 
 OGCSld::OGCSld(QObject *parent) : QObject(parent)
 {
-    setFill(QColor(120,120,120));
-    setStroke(QColor(120,120,120));
-    setSize(3);
-    setStroke_width(3);
+    setFill(QColor(120,120,120));//Ìî³ä
+    setStroke(QColor(120,120,120));//ÏßÌî³ä
+    setSize(3);//µãsize
+    setStroke_width(3);//Ïßsize
 }
 
 
