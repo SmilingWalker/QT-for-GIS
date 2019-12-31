@@ -5,6 +5,9 @@
 #include<qlayout.h>
 #include<QVBoxLayout>
 #include<libpq-fe.h>
+#include<variousDialogs.h>
+#include<QTextCodec>
+#include<stdlib.h>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -25,12 +28,19 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->layerTree,&LayerTree::RemoveLayer,ui->glwidget,&GLwidget::RemoveLayer);
 
     CPLSetConfigOption("GDAL_DATA","D:/gdal2.4/data");
+    //CPLSetConfigOption("SHAPE_ENCODING", "");//对shpfile 的字符串编码方式设置，这里要选择能够支持中文，之后才能成功分词
 
     search = false;
     SearchTable = nullptr;
-    DataBase = new ContentDB(this);//建立文本数据库
     Selection = false;
     ui->layerTree->map = ui->glwidget->getMap();
+    //分词系统连接
+    QString filepath = "D:/QtProject/NLPIR-master/NLPIR SDK/NLPIR-ICTCLAS";
+    NLPIR_Init(filepath.toStdString().c_str(),UTF8_CODE,"0f7977c44f2a601dffa078c14aeadbfc4ddc2990");
+//    std::string string = "湖北武汉汉南疆南昌";
+//    const char *str = "智能化信息处理";
+//    qDebug()<<(QString::fromLocal8Bit(NLPIR_ParagraphProcess(string.data(),ICT_POS_MAP_SECOND)));
+
 }
 
 MainWindow::~MainWindow()
@@ -126,8 +136,7 @@ void MainWindow::StatusBarXY(SfsPoint* s_pt, QPoint* q_pt)
 void MainWindow::retrieve()
 {
     QString query = searchEdit->text();
-    connect(this,&MainWindow::retrieveNew,SearchTable,&retrieveTable::RetrieveRes);
-    retrieveNew(ui->glwidget->getMap(),query);
+    SearchTable->RetrieveRes(ui->glwidget->getMap(),query);
 }
 
 void MainWindow::ClickSelect(Metadata * meta)
@@ -251,4 +260,37 @@ void MainWindow::on_QuarTree_triggered()
 void MainWindow::on_actionSelect_triggered()
 {
     SelectionChange();
+}
+
+void MainWindow::on_GridIndex_triggered()
+{
+    SfsMap* map = ui->glwidget->getMap();
+    qDebug()<<"createGridIndex called!"<<endl;
+    int maxLayerIndex = map->layers->size() - 1;
+    if(maxLayerIndex == -1){
+        QMessageBox::critical(this,"ERROR","No layer in the map!",QMessageBox::Yes);
+        return;
+    }
+    IndexSettingForm* indexSetting = new IndexSettingForm(maxLayerIndex);
+    indexSetting->exec();
+    int index = indexSetting->getIndex();
+    int column = indexSetting->getColumn();
+    int row = indexSetting->getRow();
+    if(index == -1 || column == 0 || row == 0){
+        QMessageBox::critical(this,"ERROR","Input incomplete!",QMessageBox::Yes);
+        return;
+    }
+    SfsLayer* layer = map->layers->at(index);
+    layer->createGridIndex(row, column);
+}
+
+void MainWindow::on_textIndex_triggered()
+{
+    SfsMap *map = ui->glwidget->getMap();
+    for(int i=0;i<map->layers->size();i++){
+        SfsLayer *layer = map->layers->value(i);
+        if(layer->textDB!=nullptr)continue;
+        ContentDB *textdb = new ContentDB();
+        layer->textDB = textdb;
+        textdb->GenerateIndex(layer);    }
 }

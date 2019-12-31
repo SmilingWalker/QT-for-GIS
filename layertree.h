@@ -14,8 +14,8 @@
 #include<filereader.h>
 #include<QMessageBox>
 #include<SLD/ogcsld.h>
-#include<SLD/sldsettingform.h>
 #include<QDomDocument>
+#include<variousDialogs.h>
 
 class LayerTree : public QTreeWidget
 {
@@ -50,7 +50,6 @@ private:
     QAction *ZoomToLayer;
     QAction *remove;
     FileReader *fileReader;
-
 
     //SLD≈‰÷√
     QMenu* treeWidgetItemMenu;

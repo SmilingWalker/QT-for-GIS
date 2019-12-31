@@ -86,6 +86,8 @@
      <string>建立索引</string>
     </property>
     <addaction name="QuarTree"/>
+    <addaction name="GridIndex"/>
+    <addaction name="textIndex"/>
    </widget>
    <addaction name="menu"/>
    <addaction name="menu_2"/>
@@ -194,6 +196,16 @@
    </property>
    <property name="text">
     <string>Select</string>
+   </property>
+  </action>
+  <action name="GridIndex">
+   <property name="text">
+    <string>格网索引</string>
+   </property>
+  </action>
+  <action name="textIndex">
+   <property name="text">
+    <string>图层文本索引</string>
    </property>
   </action>
  </widget>

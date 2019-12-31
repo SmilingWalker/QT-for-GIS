@@ -115,6 +115,7 @@ void LayerTree::Remove()
     SfsLayer *layer = map->layers->at(triggerdItemIndex);//移除地图内的图层数据
     //发出信号，让glwidget来处理 图层数据，（管理和删除更改数据，都给glwidget）
     RemoveLayer(layer);
+    updateMap();
 
 }
 

@@ -1,5 +1,6 @@
 ﻿#include "sfslayer.h"
 #include<prquadtree.h>
+#include<contentdb.h>
 
 SfsLayer::SfsLayer()
 {
@@ -9,6 +10,8 @@ SfsLayer::SfsLayer()
     TreeIndex = nullptr;
     render = new SfsRender();
     visible = true;
+    gridIndex = nullptr;
+    textDB = nullptr;
 }
 
 SfsLayer::~SfsLayer()
@@ -16,6 +19,12 @@ SfsLayer::~SfsLayer()
     if(render!=nullptr)
         delete render;
     render = nullptr;
+    if(TreeIndex != nullptr)
+        delete TreeIndex;
+    TreeIndex = nullptr;
+    if(gridIndex!=nullptr)
+        delete gridIndex;
+    gridIndex = nullptr;
 }
 
 QString SfsLayer::getName() const
@@ -46,4 +55,15 @@ bool SfsLayer::getVisible() const
 void SfsLayer::setVisible(bool value)
 {
     visible = value;
+}
+
+void SfsLayer::createGridIndex(int row, int column)
+{
+    gridIndex = new GridIndex(this, row, column);
+    gridIndex->createIndex();
+}
+
+GridIndex *SfsLayer::getGridIndex() const
+{
+    return gridIndex;
 }

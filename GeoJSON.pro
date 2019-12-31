@@ -24,6 +24,9 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += \
     GPC/gpc.c \
+    Index/grid.cpp \
+    Index/gridindex.cpp \
+    Index/spatialindex.cpp \
     SFS/sfsgeometry.cpp \
     SFS/sfsgeometrycollection.cpp \
     SFS/sfslayer.cpp \
@@ -37,23 +40,29 @@ SOURCES += \
     SFS/sfsrender.cpp \
     SLD/StringToColor.cpp \
     SLD/ogcsld.cpp \
-    SLD/sldsettingform.cpp \
     boundarybox.cpp \
     connect.cpp \
     contentdb.cpp \
     filereader.cpp \
     glwidget.cpp \
     layertree.cpp \
+    libhanz2piny/Hanz2Piny.cpp \
     main.cpp \
     mainwindow.cpp \
     metadata.cpp \
     properties.cpp \
     prquadtree.cpp \
     retrievetable.cpp \
-    std_reader.cpp
+    std_reader.cpp \
+    variousDialogs.cpp
 
 HEADERS += \
+    ../NLPIR-master/NLPIR SDK/NLPIR-ICTCLAS/include/NLPIR.h \
     GPC/gpc.h \
+    Index/grid.h \
+    Index/gridindex.h \
+    Index/spatialindex.h \
+    NLPIR.h \
     SFS/sfsgeometry.h \
     SFS/sfsgeometrycollection.h \
     SFS/sfslayer.h \
@@ -67,19 +76,24 @@ HEADERS += \
     SFS/sfsrender.h \
     SLD/StringToColor.h \
     SLD/ogcsld.h \
-    SLD/sldsettingform.h \
     boundarybox.h \
     connect.h \
     contentdb.h \
     filereader.h \
     glwidget.h \
     layertree.h \
+    libhanz2piny/Hanz2Piny.h \
+    libhanz2piny/checked.h \
+    libhanz2piny/core.h \
+    libhanz2piny/unchecked.h \
+    libhanz2piny/utf8.h \
     mainwindow.h \
     metadata.h \
     properties.h \
     prquadtree.h \
     retrievetable.h \
-    std_reader.h
+    std_reader.h \
+    variousDialogs.h
 
 FORMS += \
     connect.ui \
@@ -116,3 +130,8 @@ DISTFILES += \
 RESOURCES += \
     resource.qrc
 
+
+unix|win32: LIBS += -L$$PWD/'../NLPIR-master/NLPIR SDK/NLPIR-ICTCLAS/lib/win64/' -lNLPIR
+
+INCLUDEPATH += $$PWD/'../NLPIR-master/NLPIR SDK/NLPIR-ICTCLAS/include'
+DEPENDPATH += $$PWD/'../NLPIR-master/NLPIR SDK/NLPIR-ICTCLAS/include'

@@ -21,6 +21,7 @@
 #include<contentdb.h>
 #include<QDomDocument>
 #include<SLD/StringToColor.h>
+#include<NLPIR.h>
 
 
 

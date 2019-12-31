@@ -1,4 +1,7 @@
 #include "retrievetable.h"
+#include<qstringlist.h>
+#include<qtextcodec.h>
+#include<contentdb.h>
 
 retrieveTable::retrieveTable(QWidget *parent):QTableView(parent)
 {
@@ -70,39 +73,15 @@ void retrieveTable::RetrieveRes(SfsMap *map, QString query)
         result.remove(0,result.size());//
     }
     if(query=="")return;
-    QString type,res;
-    for(int i=0;i<map->layers->size();i++){
-        SfsLayer *layer = map->layers->value(i);
-        for(int j=0;j<layer->geometries->size();j++){
-            SfsGeometry *geometry = layer->geometries->value(j);
-            for(int k=0;k<geometry->properties->ProValue->size();k++){
-                if(geometry->properties->ProType->value(k)==String_PRO){
-                    //如果是文本信息的话 就进行匹配
-                    if(geometry->properties->ProName->value(k)=="NAME"){
-                        //这里缩小检索范围，只检索要素名称
-                        QString param = (*(QString*)geometry->properties->ProValue->value(k));
-                        if((*(QString*)geometry->properties->ProValue->value(k)).contains(query))
-                        {
-
-                            //这里用于检索匹配，现在只是简单的全文检索
-                            //将检索到的信息进行展示
-                            res = (*(QString*)geometry->properties->ProValue->value(k));
-                            type = geometry->properties->ProName->value(k);
-                            Metadata *data = new Metadata();
-//                            qDebug()<< res.left(1);
-                            data->ID = j;
-                            data->layer = layer;
-                            data->content = res;
-                            result.append(data);
-
-                        }
-                    }
-
-                }
-            }
+    for (int i=0;i<map->layers->size();i++) {
+        SfsLayer *layer = map->layers->at(i);
+        if(layer->textDB==nullptr){
+            QueryByAll(layer,query);
+        }
+        else{
+            QueryByIndex(layer,query);
         }
     }
-
     if(result.size()!=0)
         showData();
 }
@@ -159,4 +138,39 @@ void retrieveTable::ClickSelect(Metadata *meta)
     resultModel->setItem(0,1,itemName);
 
     this->show();
+}
+
+void retrieveTable::QueryByIndex(SfsLayer *layer, QString query)
+{
+    //有了索引的检索
+    layer->textDB->Query(&result,query,layer);
+}
+
+void retrieveTable::QueryByAll(SfsLayer *layer, QString query)
+{
+    int num = 0;
+    QStringList query_list = ContentDB::HanzSplit(query);
+    for(int j=0;j<layer->geometries->size();j++){
+        SfsGeometry *geometry = layer->geometries->value(j);
+        for(int k=0;k<geometry->properties->ProValue->size();k++){
+            if(geometry->properties->ProType->value(k)==String_PRO){
+                //如果是文本信息的话 就进行匹配
+                    QString param = (*(QString*)geometry->properties->ProValue->value(k));
+                    //判断是否为中文
+                    for (int k=0;k<query_list.size();k++) {
+                        //判断是否分词
+                        QString query_split = query_list.at(k);
+                        num++;
+                        if(param.contains(query_split)){
+                            Metadata *data = new Metadata();
+                            data->ID = j;
+                            data->layer = layer;
+                            data->content = param;
+                            result.append(data);
+                        }
+                   }
+            }
+        }
+    }
+    qDebug()<<num;
 }

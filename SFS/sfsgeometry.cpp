@@ -36,3 +36,33 @@ void SfsGeometry::setName(const QString &value)
 {
     name = value;
 }
+
+Properties *SfsGeometry::getProperties() const
+{
+    return properties;
+}
+
+void SfsGeometry::setProperties(Properties *value)
+{
+    properties = value;
+}
+
+unsigned int SfsGeometry::getId() const
+{
+    return id;
+}
+
+void SfsGeometry::setId(unsigned int value)
+{
+    id = value;
+}
+
+bool SfsGeometry::getIsSelected() const
+{
+    return isSelected;
+}
+
+void SfsGeometry::setIsSelected(bool value)
+{
+    isSelected = value;
+}

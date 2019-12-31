@@ -35,9 +35,18 @@ public:
     SfsGeometry * boundary();
     QString getName() const;
     void setName(const QString &value);
+    Properties *getProperties() const;
+    void setProperties(Properties *value);
+    unsigned int getId() const;
+    void setId(unsigned int value);
+    bool getIsSelected() const;
+    void setIsSelected(bool value);
+
 public:
     BoundaryBox *bbox;
     Properties *properties;
+    unsigned int id;
+    bool isSelected = false;
 
 private:
     QString name;

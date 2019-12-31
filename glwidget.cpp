@@ -136,13 +136,36 @@ void GLwidget::paintGL()
                             break;
                         }
                         else
+                        {
+                            if(map->layers->value(j)->getGeometype()!=Sfs_Point)
                             prefix += map->layers->value(j)->geometries->size();
+                            else
+                                prefix += 1;
+                        }
                     }
                    QOpenGLVertexArrayObject *VAO = VAOs->value(prefix+data->ID);
                    VAO->bind();
-                   glDrawElements(GL_TRIANGLES,VAO->property("vertex_num").toInt(),GL_UNSIGNED_INT,(void*)0);
+                   if(VAO->property("geo_type").toInt()==Sfs_Polygon)
+                   {
+                       QColor  color = data->layer->render->getSld()->getFill();
+                       m_shaderProgram->setUniformValue("color",152.0/255.0,169.0/255.0,238.0/255.0);
+                       glDrawElements(GL_TRIANGLES,VAO->property("vertex_num").toInt(),GL_UNSIGNED_INT,(void*)0);
+                   }
+                   else if(VAO->property("geo_type").toInt()==Sfs_LineString){
+                       glLineWidth(data->layer->render->getSld()->getStroke_width());
+                       QColor  color = data->layer->render->getSld()->getStroke();
+                       m_shaderProgram->setUniformValue("color",152.0/255.0,169.0/255.0,238.0/255.0);
+                       glDrawArrays(GL_LINES,0,VAO->property("vertex_num").toInt());
+                   }
+                   else if(VAO->property("geo_type").toInt()==Sfs_Point)
+                   {
+                       glPointSize(data->layer->render->getSld()->getSize());
+                        m_shaderProgram->setUniformValue("color",152.0/255.0,169.0/255.0,238.0/255.0);
+                       glDrawArrays(GL_POINTS,0,VAO->property("vertex_num").toInt());
+                   }
                    VAO->release();
-                }
+               }
+
             }
         m_shaderProgram->release();
 
@@ -280,6 +303,8 @@ void GLwidget::wheelEvent(QWheelEvent *event)
 
 void GLwidget::animate(SfsLayer *layer)
 {
+    if(map->layers->size()==0)
+        first = true;
     map->layers->append(layer);
     //一个图层对应一个VAOs，这样便于管理绘制程序
     VAOs = new QVector<QOpenGLVertexArrayObject*>();
@@ -374,6 +399,24 @@ void GLwidget::RemoveLayer(SfsLayer *layer)
     map->layers->removeOne(layer);
     delete layer;
     layer = nullptr;
+    //修改map的Boundary
+    for (int i=0;i<map->layers->size();i++) {
+     SfsLayer *layer = map->layers->value(i);
+     map->bbox->setTopY(map->bbox->getTopY()>layer->bbox->getTopY()?map->bbox->getTopY():layer->bbox->getTopY());
+     map->bbox->setBottomY(map->bbox->getBottomY()<layer->bbox->getBottomY()?map->bbox->getBottomY():layer->bbox->getBottomY());
+     map->bbox->setLeftX(map->bbox->getLeftX()<layer->bbox->getLeftX()?map->bbox->getLeftX():layer->bbox->getLeftX());
+     map->bbox->setRightX(map->bbox->getRightX()>layer->bbox->getRightX()?map->bbox->getRightX():layer->bbox->getRightX());
+    }
+    if(map->layers->size()==0)
+    {
+        //更新为原始值
+        map->bbox->setBoundary(DBL_MIN,DBL_MAX,DBL_MAX,DBL_MIN);
+        ModelView.setToIdentity();
+        Project.setToIdentity();
+        change_x = 0;
+        change_y = 0;
+        scale = 1;
+    }
     update();
 }
 
@@ -627,12 +670,15 @@ void GLwidget::getOriginBox(bool MapBox)
     //得到地图的外边界，只有第一次时才需要，其他绘制时不再需要
     if(MapBox)
     {
+        Project.setToIdentity();
+        ModelView.setToIdentity();
         lx = map->bbox->getLeftX();
         rx = map->bbox->getRightX();
         ty = map->bbox->getTopY();
         by = map->bbox->getBottomY();
         change_x = 0;//屏幕坐标x的偏移量，（实际的偏移）
         change_y = 0;//y的偏移量，都是实际偏移
+        scale = 1;
     }
 }
 

@@ -41,6 +41,8 @@
 #include<QTreeWidgetItem>
 #include<QAction>
 #include<QMenu>
+#include<variousDialogs.h>
+#include<NLPIR.h>
 
 
 QT_BEGIN_NAMESPACE
@@ -66,6 +68,10 @@ private slots:
     void on_QuarTree_triggered();
     void on_actionSelect_triggered();
 
+    void on_GridIndex_triggered();
+
+    void on_textIndex_triggered();
+
 private:
     Ui::MainWindow *ui;
     QVector<SfsRender*> render;
@@ -77,7 +83,6 @@ private:
 
 public:
     FileReader *fileReader;
-    ContentDB *DataBase;
     QTableWidget * searchRes;//检索结果返回，显示
     PRQuadTree *QuarTree;
     bool Selection;

@@ -2,6 +2,8 @@
 #include <gdal_priv.h>
 #include <qjsonarray.h>
 #include <qjsonobject.h>
+#include<QTextCodec>
+#include<stdlib.h>
 
 FileReader::FileReader()
 {
@@ -507,7 +509,6 @@ void FileReader::ShpfileReader(GDALDataset *pDoc, SfsLayer *layer)
     double maxY = DBL_MIN,minY=DBL_MAX,maxX=DBL_MIN,minX=DBL_MAX;//整个图层的范围
     OGRLayer *ogrlayer;//shp图层
     OGRGeometry *poGeometry;//shp几何对象
-
     for (int i=0;i<pDoc->GetLayers().size();i++) {
         //图层循环
         //生成图层，每次读到一个图层就新建一个图层加入
@@ -548,6 +549,14 @@ void FileReader::ShpfileReader(GDALDataset *pDoc, SfsLayer *layer)
                         QString *value = new QString;
                         (*value) = ogrfeature->GetFieldAsString(j);
                         properties->ProValue->append(value);
+
+
+//                        QString filepath = "D:/QtProject/NLPIR-master/NLPIR SDK/NLPIR-ICTCLAS";
+//                        NLPIR_Init(filepath.toStdString().c_str(),UTF8_CODE,"0f7977c44f2a601dffa078c14aeadbfc4ddc2990");
+//                        QString t = NLPIR_ParagraphProcess((*value).toStdString().c_str(),ICT_POS_MAP_SECOND);
+//                        QString a = QString::fromLocal8Bit("美");
+//                        qDebug()<<t;
+
                         break;
                     }
                 case OFTReal:
