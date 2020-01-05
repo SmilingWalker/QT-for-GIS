@@ -3,6 +3,8 @@
 #include<GPC/gpc.h>
 #include<GPC/gpc.c>
 #include<QTime>
+
+#include<qpixmap.h>
 gpc_vertex buildVertex(float x, float y)
 {
     gpc_vertex vertex;

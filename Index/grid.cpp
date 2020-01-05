@@ -1,7 +1,7 @@
 #include "grid.h"
-#include "SFS/sfspoint.h"
-#include "SFS/sfslinestring.h"
-#include "SFS/sfspolygon.h"
+#include "./SFS/sfspoint.h"
+#include "./SFS/sfslinestring.h"
+#include "./SFS/sfspolygon.h"
 
 Grid::Grid(BoundaryBox* bbox, QObject *parent) : QObject(parent)
 {
@@ -106,6 +106,11 @@ bool Grid::shouldHave(SfsGeometry* obj){
         return false;
     }
     return false;
+}
+
+QVector<unsigned int>* Grid::getIDs()
+{
+    return &id;
 }
 
 

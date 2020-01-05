@@ -13,321 +13,195 @@ FileReader::FileReader()
 void FileReader::GeoJsonReader(QJsonDocument *geojson, SfsLayer *layer)
 {
     double maxY = DBL_MIN,minY=DBL_MAX,maxX=DBL_MIN,minX=DBL_MAX;
-    QString type = (*geojson)["type"].toString();
-    //type 类型为两种 一种为几何对象，一种为要素对象
+     QString type = (*geojson)["type"].toString();
+     //type 类型为两种 一种为几何对象，一种为要素对象
+     unsigned int id = 1;
+     if(type=="Point")
+     {
+         double topY=DBL_MIN,buttomY= DBL_MAX,leftX= DBL_MAX,rightX=DBL_MIN;
+         SfsPoint *pt = new SfsPoint();
+         pt->setId(id);
+         id++;
+         QJsonArray array = (*geojson)["coordinates"].toArray();
+         pt->x = array[0].toDouble();
+         pt->y = array[1].toDouble();
+         layer->geometries->append(pt);
+         topY = pt->y>topY?pt->y:topY;
+         buttomY = buttomY<pt->y?buttomY:pt->y;
+         leftX = leftX<pt->x?leftX:pt->x;
+         rightX = rightX>pt->x?rightX:pt->x;
+         layer->bbox->setBoundary(topY,buttomY,leftX,rightX);
 
-    if(type=="Point")
-    {
-        double topY=DBL_MIN,buttomY= DBL_MAX,leftX= DBL_MAX,rightX=DBL_MIN;
-        SfsLayer *layer = new SfsLayer();
-        SfsPoint *pt = new SfsPoint();
-        QJsonArray array = (*geojson)["coordinates"].toArray();
-        pt->x = array[0].toDouble();
-        pt->y = array[1].toDouble();
-        layer->geometries->append(pt);
-        topY = pt->y>topY?pt->y:topY;
-        buttomY = buttomY<pt->y?buttomY:pt->y;
-        leftX = leftX<pt->x?leftX:pt->x;
-        rightX = rightX>pt->x?rightX:pt->x;
-        layer->bbox->setBoundary(topY,buttomY,leftX,rightX);
-    }
-    else if (type=="FeatureCollection")
-    {
-        QJsonArray Features =(*geojson)["features"].toArray();
-        QJsonObject feature;
-        QString Geometry;
-        for(int i=0;i<Features.size();i++){
-            feature = Features[i].toObject();
-            QJsonObject geometry = feature["geometry"].toObject();
-            Geometry = geometry["type"].toString();
-            if(Geometry=="Point")
-            {
+     }
+     else if (type=="FeatureCollection")
+     {
+         QJsonArray Features =(*geojson)["features"].toArray();
+         QJsonObject feature;
+         QString Geometry;
+         for(int i=0;i<Features.size();i++){
+             feature = Features[i].toObject();
+             QJsonObject geometry = feature["geometry"].toObject();
+             Geometry = geometry["type"].toString();
+             if(Geometry=="Point")
+             {
+                 double topY=DBL_MIN,buttomY= DBL_MAX,leftX= DBL_MAX,rightX=DBL_MIN;
+                 SfsPoint *pt = new SfsPoint();
+                 pt->setId(id++);
+                 QJsonArray crds = geometry["coordinates"].toArray();
+                 pt->x = crds[0].toDouble();
+                 pt->y = crds[1].toDouble();
+                 layer->geometries->append(pt);
+                 topY = pt->y>topY?pt->y:topY;
+                 buttomY = buttomY<pt->y?buttomY:pt->y;
+                 leftX = leftX<pt->x?leftX:pt->x;
+                 rightX = rightX>pt->x?rightX:pt->x;
+
+                 maxY = topY>maxY?topY:maxY;
+                 minY = buttomY<minY?buttomY:minY;
+                 maxX = rightX>maxX?rightX:maxX;
+                 minX = leftX<minX?leftX:minX;
+
+
+                 QJsonObject properties = feature["properties"].toObject();
+                 Properties* currentProperty = new Properties();
+                 currentProperty->addProperty(&properties);
+                 pt->setProperties(currentProperty);
+             }
+             if(Geometry=="Polygon"){
                 double topY=DBL_MIN,buttomY= DBL_MAX,leftX= DBL_MAX,rightX=DBL_MIN;
-                SfsPoint *pt = new SfsPoint();
-                QJsonArray crds = geometry["coordinates"].toArray();
-                pt->x = crds[0].toDouble();
-                pt->y = crds[1].toDouble();
-                layer->geometries->append(pt);
-                topY = pt->y>topY?pt->y:topY;
-                buttomY = buttomY<pt->y?buttomY:pt->y;
-                leftX = leftX<pt->x?leftX:pt->x;
-                rightX = rightX>pt->x?rightX:pt->x;
+                QJsonArray boundary_array = geometry["coordinates"].toArray();//单个多边形层次，可能为有内点的，比如有孔的多边形
+                SfsPolygon *polygon = new SfsPolygon();
+                polygon->setId(id++);
+                layer->geometries->append(polygon);
 
-                maxY = topY>maxY?topY:maxY;
-                minY = buttomY<minY?buttomY:minY;
-                maxX = rightX>maxX?rightX:maxX;
-                minX = leftX<minX?leftX:minX;
-            }
-            if(Geometry=="Polygon"){
-               double topY=DBL_MIN,buttomY= DBL_MAX,leftX= DBL_MAX,rightX=DBL_MIN;
-               QJsonArray boundary_array = geometry["coordinates"].toArray();//单个多边形层次，可能为有内点的，比如有孔的多边形
-               SfsPolygon *polygon = new SfsPolygon();
-               SfsLineString *boundary = new SfsLineString();
-               polygon->boundaries->append(boundary);
-               for(int m1=0;m1<boundary_array.size();m1++){
-                   QJsonArray points_array = boundary_array[m1].toArray();
-                   for(int m2=0;m2<points_array.size();m2++)
-                   {
-                       //坐标点数组层次
-                       QJsonArray point_array = points_array[m2].toArray();
-                       for (int m3=0;m3<point_array.size();m3++) {
-                           //坐标点层次
-                           SfsPoint * pt = new SfsPoint();
-                           boundary->pts->append(pt);
-                           pt->x = point_array[0].toDouble();
-                           pt->y = point_array[1].toDouble();
-                           topY = pt->y>topY?pt->y:topY;
-                           buttomY = buttomY<pt->y?buttomY:pt->y;
-                           leftX = leftX<pt->x?leftX:pt->x;
-                           rightX = rightX>pt->x?rightX:pt->x;
-                       }
-                   }
 
-               }
-               polygon->bbox->setBoundary(topY,buttomY,leftX,rightX);
-               maxY = topY>maxY?topY:maxY;
-               minY = buttomY<minY?buttomY:minY;
-               maxX = rightX>maxX?rightX:maxX;
-               minX = leftX<minX?leftX:minX;
-            }
-            if(Geometry=="LineString"){
-                double topY=DBL_MIN,buttomY= DBL_MAX,leftX= DBL_MAX,rightX=DBL_MIN;
-                SfsLineString *lineString = new SfsLineString();
-                layer->geometries->append(lineString);
-                QJsonArray crds = geometry["coordinates"].toArray();
-                for(int j=0;j<crds.size();j++){
-                    QJsonArray crd = crds[j].toArray();
-                    SfsPoint *pt = new SfsPoint();
-                    lineString->pts->append(pt);
-                    pt->x = crd[0].toDouble();
-                    pt->y = crd[1].toDouble();
-                    topY = pt->y>topY?pt->y:topY;
-                    buttomY = buttomY<pt->y?buttomY:pt->y;
-                    leftX = leftX<pt->x?leftX:pt->x;
-                    rightX = rightX>pt->x?rightX:pt->x;
-                }
-                lineString->bbox->setBoundary(topY,buttomY,leftX,rightX);
-                maxY = topY>maxY?topY:maxY;
-                minY = buttomY<minY?buttomY:minY;
-                maxX = rightX>maxX?rightX:maxX;
-                minX = leftX<minX?leftX:minX;
-            }
-            if(Geometry=="MultiPoint"){
-                double topY=DBL_MIN,buttomY= DBL_MAX,leftX= DBL_MAX,rightX=DBL_MIN;
-                QJsonArray crds = geometry["coordinates"].toArray();
-                for(int j=0;j<crds.size();j++){
-                    QJsonArray crd = crds[j].toArray();
-                    SfsPoint *pt = new SfsPoint();
-                    //修改，不再存储multi类数据
-                    layer->geometries->append(pt);
-                    pt->x = crd[0].toDouble();
-                    pt->y = crd[1].toDouble();
-                    topY = pt->y>topY?pt->y:topY;
-                    buttomY = buttomY<pt->y?buttomY:pt->y;
-                    leftX = leftX<pt->x?leftX:pt->x;
-                    rightX = rightX>pt->x?rightX:pt->x;
-                }
-                maxY = topY>maxY?topY:maxY;
-                minY = buttomY<minY?buttomY:minY;
-                maxX = rightX>maxX?rightX:maxX;
-                minX = leftX<minX?leftX:minX;
-
-            }
-            if(Geometry=="MultiLineString"){
-
-                QJsonArray array = geometry["coordinates"].toArray();
-                for(int k = 0;k<array.size();k++){
-                    double topY=DBL_MIN,buttomY= DBL_MAX,leftX= DBL_MAX,rightX=DBL_MIN;
-                    SfsLineString *LineString = new SfsLineString();
-                    layer->geometries->append(LineString);
-                    QJsonArray crd_array = array[k].toArray();
-                    for (int j=0;j<crd_array.size();j++) {
-                        //每次都会读到一个点数组（array表示）
-                        QJsonArray crds = crd_array[i].toArray();
-                        SfsPoint * pt = new SfsPoint();
-                        pt->x = crds[0].toDouble();
-                        pt->y = crds[1].toDouble();
-                        topY = pt->y>topY?pt->y:topY;
-                        buttomY = buttomY<pt->y?buttomY:pt->y;
-                        leftX = leftX<pt->x?leftX:pt->x;
-                        rightX = rightX>pt->x?rightX:pt->x;
-                        pt->bbox->setBoundary(topY,buttomY,leftX,rightX);
-                        LineString->pts->append(pt);
+                for(int m1=0;m1<boundary_array.size();m1++){
+                    SfsLineString *boundary = new SfsLineString();
+                    polygon->boundaries->append(boundary);
+                    QJsonArray points_array = boundary_array[m1].toArray();
+                    for(int m2=0;m2<points_array.size();m2++)
+                    {
+                        //坐标点数组层次
+                        QJsonArray point_array = points_array[m2].toArray();
+                        for (int m3=0;m3<point_array.size();m3++) {
+                            //坐标点层次
+                            SfsPoint * pt = new SfsPoint();
+                            boundary->pts->append(pt);
+                            pt->x = point_array[0].toDouble();
+                            pt->y = point_array[1].toDouble();
+                            topY = pt->y>topY?pt->y:topY;
+                            buttomY = buttomY<pt->y?buttomY:pt->y;
+                            leftX = leftX<pt->x?leftX:pt->x;
+                            rightX = rightX>pt->x?rightX:pt->x;
+                        }
                     }
-                    LineString->bbox->setBoundary(topY,buttomY,leftX,rightX);
-                    maxY = topY>maxY?topY:maxY;
-                    minY = buttomY<minY?buttomY:minY;
-                    maxX = rightX>maxX?rightX:maxX;
-                    minX = leftX<minX?leftX:minX;
-                }
-            }
-            if(Geometry=="MultiPolygon"){
-                QJsonArray polygons_array = geometry["coordinates"].toArray();//多 个 多边形层次
-                for(int m1 =0;m1<polygons_array.size();m1++){
-                   double topY=DBL_MIN,buttomY= DBL_MAX,leftX= DBL_MAX,rightX=DBL_MIN;
-                   SfsPolygon *polygon = new SfsPolygon();
-                   layer->geometries->append(polygon);
-                   QJsonArray polygon_array = polygons_array[m1].toArray();//单个多边形层次
-                   for(int m2=0;m2<polygon_array.size();m2++){
-                       //单个多边形层次，可能为有内点的，比如有孔的多边形
-                       SfsLineString *boundary = new SfsLineString();
-                       polygon->boundaries->append(boundary);
-                       QJsonArray points_array = polygon_array[m2].toArray();
-                       for(int m3=0;m3<points_array.size();m3++)
-                       {
-                           //坐标点数组层次
-                           QJsonArray point_array = points_array[m3].toArray();
-                           for (int m4=0;m4<point_array.size();m4++) {
-                               //每次都会读到一个点数组（array表示）
-                               SfsPoint * pt = new SfsPoint();
-                               boundary->pts->append(pt);
-                               pt->x = point_array[0].toDouble();
-                               pt->y = point_array[1].toDouble();
-                               buttomY = buttomY<pt->y?buttomY:pt->y;
-                               leftX = leftX<pt->x?leftX:pt->x;
-                               rightX = rightX>pt->x?rightX:pt->x;
-                           }
-                       }
 
-                   }
-                   polygon->bbox->setBoundary(topY,buttomY,leftX,rightX);
-                   maxY = topY>maxY?topY:maxY;
-                   minY = buttomY<minY?buttomY:minY;
-                   maxX = rightX>maxX?rightX:maxX;
-                   minX = leftX<minX?leftX:minX;
                 }
-            }
-            //图层范围值
-        }
-        layer->bbox->setBoundary(maxY,minY,minX,minX);
-    }
-    else if (type=="GeometryCollection") {
-        QJsonArray geometry_array = (*geojson)["geometries"].toArray();
-        for(int j=0;j<geometry_array.size();j++){
-            QJsonObject geometry = geometry_array[j].toObject();//几何要素集合
-            QString Geometry = geometry["type"].toString();//几何要素的类型
-            if(Geometry=="Point")
-            {
-                double topY=DBL_MIN,buttomY= DBL_MAX,leftX= DBL_MAX,rightX=DBL_MIN;
-                SfsPoint *pt = new SfsPoint();
-                QJsonArray crds = geometry["coordinates"].toArray();
-                pt->x = crds[0].toDouble();
-                pt->y = crds[1].toDouble();
-                topY = pt->y>topY?pt->y:topY;
-                buttomY = buttomY<pt->y?buttomY:pt->y;
-                leftX = leftX<pt->x?leftX:pt->x;
-                rightX = rightX>pt->x?rightX:pt->x;
-
-                layer->geometries->append(pt);
+                polygon->bbox->setBoundary(topY,buttomY,leftX,rightX);
                 maxY = topY>maxY?topY:maxY;
                 minY = buttomY<minY?buttomY:minY;
                 maxX = rightX>maxX?rightX:maxX;
                 minX = leftX<minX?leftX:minX;
-            }
-            if(Geometry=="Polygon"){
-               double topY=DBL_MIN,buttomY= DBL_MAX,leftX= DBL_MAX,rightX=DBL_MIN;
-               QJsonArray polygon_array = geometry["coordinates"].toArray();//
-               SfsPolygon *polygon = new SfsPolygon();
-               layer->geometries->append(polygon);
-                   for(int m1=0;m1<polygon_array.size();m1++){
-                   //面的边界层次，内边界和外边界
-                   SfsLineString *boundary = new SfsLineString();
-                   polygon->boundaries->append(boundary);
-                   QJsonArray points_array = polygon_array[m1].toArray();
-                   for(int m2=0;m2<points_array.size();m2++)
-                   {
-                       //坐标点数组层次
-                       QJsonArray point_array = points_array[m2].toArray();
-                       SfsPoint * pt = new SfsPoint();
-                       pt->x = point_array[0].toDouble();
-                       pt->y = point_array[1].toDouble();
-                       boundary->pts->append(pt);
-                       topY = pt->y>topY?pt->y:topY;
-                       buttomY = buttomY<pt->y?buttomY:pt->y;
-                       leftX = leftX<pt->x?leftX:pt->x;
-                       rightX = rightX>pt->x?rightX:pt->x;
 
-                   }
-               }
-               polygon->bbox->setBoundary(topY,buttomY,leftX,rightX);
-               maxY = topY>maxY?topY:maxY;
-               minY = buttomY<minY?buttomY:minY;
-               maxX = rightX>maxX?rightX:maxX;
-               minX = leftX<minX?leftX:minX;
-            }
-            if(Geometry=="LineString"){
-                double topY=DBL_MIN,buttomY= DBL_MAX,leftX= DBL_MAX,rightX=DBL_MIN;
-                SfsLineString *lineString = new SfsLineString();
-                layer->geometries->append(lineString);
-                QJsonArray crds = geometry["coordinates"].toArray();
-                for(int j=0;j<crds.size();j++){
-                    QJsonArray crd = crds[j].toArray();
-                    SfsPoint *pt = new SfsPoint();
-                    lineString->pts->append(pt);
-                    pt->x = crd[0].toDouble();
-                    pt->y = crd[1].toDouble();
-                    topY = pt->y>topY?pt->y:topY;
-                    buttomY = buttomY<pt->y?buttomY:pt->y;
-                    leftX = leftX<pt->x?leftX:pt->x;
-                    rightX = rightX>pt->x?rightX:pt->x;
-                }
-                lineString->bbox->setBoundary(topY,buttomY,leftX,rightX);
-                maxY = topY>maxY?topY:maxY;
-                minY = buttomY<minY?buttomY:minY;
-                maxX = rightX>maxX?rightX:maxX;
-                minX = leftX<minX?leftX:minX;
-            }
-            if(Geometry=="MultiPoint"){
-                double topY=DBL_MIN,buttomY= DBL_MAX,leftX= DBL_MAX,rightX=DBL_MIN;
-                QJsonArray crds = geometry["coordinates"].toArray();
-                for(int j=0;j<crds.size();j++){
-                    QJsonArray crd = crds[j].toArray();
-                    SfsPoint *pt = new SfsPoint();
-                    layer->geometries->append(pt);
-                    pt->x = crd[0].toDouble();
-                    pt->y = crd[1].toDouble();
-                    topY = pt->y>topY?pt->y:topY;
-                    buttomY = buttomY<pt->y?buttomY:pt->y;
-                    leftX = leftX<pt->x?leftX:pt->x;
-                    rightX = rightX>pt->x?rightX:pt->x;
-                }
-                maxY = topY>maxY?topY:maxY;
-                minY = buttomY<minY?buttomY:minY;
-                maxX = rightX>maxX?rightX:maxX;
-                minX = leftX<minX?leftX:minX;
-            }
-            if(Geometry=="MultiLineString"){
-                QJsonArray array = geometry["coordinates"].toArray();
-                for(int k = 0;k<array.size();k++){
-                    double topY=DBL_MIN,buttomY= DBL_MAX,leftX= DBL_MAX,rightX=DBL_MIN;
-                    SfsLineString *lineString = new SfsLineString();
-                    layer->geometries->append(lineString);
-                    QJsonArray crd_array = array[k].toArray();
-                    for (int j=0;j<crd_array.size();j++) {
-                        //每次都会读到一个点数组（array表示）
-                        QJsonArray crds = crd_array[j].toArray();
-                        SfsPoint * pt = new SfsPoint();
-                        pt->x = crds[0].toDouble();
-                        pt->y = crds[1].toDouble();
-                        topY = pt->y>topY?pt->y:topY;
-                        buttomY = buttomY<pt->y?buttomY:pt->y;
-                        leftX = leftX<pt->x?leftX:pt->x;
-                        rightX = rightX>pt->x?rightX:pt->x;
+                QJsonObject properties = feature["properties"].toObject();
+                Properties* currentProperty = new Properties();
+                currentProperty->addProperty(&properties);
+                polygon->setProperties(currentProperty);
+             }
+             if(Geometry=="LineString"){
+                 double topY=DBL_MIN,buttomY= DBL_MAX,leftX= DBL_MAX,rightX=DBL_MIN;
+                 SfsLineString *lineString = new SfsLineString();
+                 lineString->setId(id++);
+                 layer->geometries->append(lineString);
+                 QJsonArray crds = geometry["coordinates"].toArray();
+                 for(int j=0;j<crds.size();j++){
+                     QJsonArray crd = crds[j].toArray();
+                     SfsPoint *pt = new SfsPoint();
+                     lineString->pts->append(pt);
+                     pt->x = crd[0].toDouble();
+                     pt->y = crd[1].toDouble();
+                     topY = pt->y>topY?pt->y:topY;
+                     buttomY = buttomY<pt->y?buttomY:pt->y;
+                     leftX = leftX<pt->x?leftX:pt->x;
+                     rightX = rightX>pt->x?rightX:pt->x;
+                 }
+                 lineString->bbox->setBoundary(topY,buttomY,leftX,rightX);
+                 maxY = topY>maxY?topY:maxY;
+                 minY = buttomY<minY?buttomY:minY;
+                 maxX = rightX>maxX?rightX:maxX;
+                 minX = leftX<minX?leftX:minX;
 
-                        lineString->pts->append(pt);
-                    }
-                    lineString->bbox->setBoundary(topY,buttomY,leftX,rightX);
-                    maxY = topY>maxY?topY:maxY;
-                    minY = buttomY<minY?buttomY:minY;
-                    maxX = rightX>maxX?rightX:maxX;
-                    minX = leftX<minX?leftX:minX;
-                }
-            }
-            if(Geometry=="MultiPolygon"){
-                QJsonArray polygons_array = geometry["coordinates"].toArray();//多 个 多边形层次
-                for(int m1 =0;m1<polygons_array.size();m1++){
+                 QJsonObject properties = feature["properties"].toObject();
+                 Properties* currentProperty = new Properties();
+                 currentProperty->addProperty(&properties);
+                 lineString->setProperties(currentProperty);
+             }
+             if(Geometry=="MultiPoint"){
+                 double topY=DBL_MIN,buttomY= DBL_MAX,leftX= DBL_MAX,rightX=DBL_MIN;
+                 QJsonArray crds = geometry["coordinates"].toArray();
+                 for(int j=0;j<crds.size();j++){
+                     QJsonArray crd = crds[j].toArray();
+                     SfsPoint *pt = new SfsPoint();
+                     pt->setId(id++);
+                     //修改，不再存储multi类数据
+                     layer->geometries->append(pt);
+                     pt->x = crd[0].toDouble();
+                     pt->y = crd[1].toDouble();
+                     topY = pt->y>topY?pt->y:topY;
+                     buttomY = buttomY<pt->y?buttomY:pt->y;
+                     leftX = leftX<pt->x?leftX:pt->x;
+                     rightX = rightX>pt->x?rightX:pt->x;
+
+                     QJsonObject properties = feature["properties"].toObject();
+                     Properties* currentProperty = new Properties();
+                     currentProperty->addProperty(&properties);
+                     pt->setProperties(currentProperty);
+                 }
+                 maxY = topY>maxY?topY:maxY;
+                 minY = buttomY<minY?buttomY:minY;
+                 maxX = rightX>maxX?rightX:maxX;
+                 minX = leftX<minX?leftX:minX;
+
+             }
+             if(Geometry=="MultiLineString"){
+
+                 QJsonArray array = geometry["coordinates"].toArray();
+                 for(int k = 0;k<array.size();k++){
+                     double topY=DBL_MIN,buttomY= DBL_MAX,leftX= DBL_MAX,rightX=DBL_MIN;
+                     SfsLineString *LineString = new SfsLineString();
+                     layer->geometries->append(LineString);
+                     QJsonArray crd_array = array[k].toArray();
+                     for (int j=0;j<crd_array.size();j++) {
+                         //每次都会读到一个点数组（array表示）
+                         QJsonArray crds = crd_array[i].toArray();
+                         SfsPoint * pt = new SfsPoint();
+                         pt->x = crds[0].toDouble();
+                         pt->y = crds[1].toDouble();
+                         topY = pt->y>topY?pt->y:topY;
+                         buttomY = buttomY<pt->y?buttomY:pt->y;
+                         leftX = leftX<pt->x?leftX:pt->x;
+                         rightX = rightX>pt->x?rightX:pt->x;
+                         pt->bbox->setBoundary(topY,buttomY,leftX,rightX);
+                         LineString->pts->append(pt);
+                     }
+                     LineString->bbox->setBoundary(topY,buttomY,leftX,rightX);
+                     maxY = topY>maxY?topY:maxY;
+                     minY = buttomY<minY?buttomY:minY;
+                     maxX = rightX>maxX?rightX:maxX;
+                     minX = leftX<minX?leftX:minX;
+
+                     QJsonObject properties = feature["properties"].toObject();
+                     Properties* currentProperty = new Properties();
+                     currentProperty->addProperty(&properties);
+                     LineString->setProperties(currentProperty);
+                 }
+             }
+             if(Geometry=="MultiPolygon"){
+                 QJsonArray polygons_array = geometry["coordinates"].toArray();//多 个 多边形层次
+                 for(int m1 =0;m1<polygons_array.size();m1++){
                     double topY=DBL_MIN,buttomY= DBL_MAX,leftX= DBL_MAX,rightX=DBL_MIN;
                     SfsPolygon *polygon = new SfsPolygon();
+                    polygon->setId(id++);
                     layer->geometries->append(polygon);
                     QJsonArray polygon_array = polygons_array[m1].toArray();//单个多边形层次
                     for(int m2=0;m2<polygon_array.size();m2++){
@@ -345,161 +219,339 @@ void FileReader::GeoJsonReader(QJsonDocument *geojson, SfsLayer *layer)
                                 boundary->pts->append(pt);
                                 pt->x = point_array[0].toDouble();
                                 pt->y = point_array[1].toDouble();
-                                topY = pt->y>topY?pt->y:topY;
                                 buttomY = buttomY<pt->y?buttomY:pt->y;
                                 leftX = leftX<pt->x?leftX:pt->x;
                                 rightX = rightX>pt->x?rightX:pt->x;
                             }
-                        }                        
+                        }
+
                     }
+                    polygon->bbox->setBoundary(topY,buttomY,leftX,rightX);
                     maxY = topY>maxY?topY:maxY;
                     minY = buttomY<minY?buttomY:minY;
                     maxX = rightX>maxX?rightX:maxX;
                     minX = leftX<minX?leftX:minX;
-                    polygon->bbox->setBoundary(topY,buttomY,leftX,rightX);
+                    //读取属性
+                    QJsonObject properties = feature["properties"].toObject();
+                    Properties* currentProperty = new Properties();
+                    currentProperty->addProperty(&properties);
+                    polygon->setProperties(currentProperty);
                  }
-            }
-        }
-        layer->bbox->setBoundary(maxY,minY,minX,minX);
+             }
+             //图层范围值
+         }
+         layer->bbox->setBoundary(maxY,minY,minX,maxX);
+     }
+     else if (type=="GeometryCollection") {
+         QJsonArray geometry_array = (*geojson)["geometries"].toArray();
+         for(int j=0;j<geometry_array.size();j++){
+             QJsonObject geometry = geometry_array[j].toObject();//几何要素集合
+             QString Geometry = geometry["type"].toString();//几何要素的类型
+             if(Geometry=="Point")
+             {
+                 double topY=DBL_MIN,buttomY= DBL_MAX,leftX= DBL_MAX,rightX=DBL_MIN;
+                 SfsPoint *pt = new SfsPoint();
+                 pt->setId(id++);
+                 QJsonArray crds = geometry["coordinates"].toArray();
+                 pt->x = crds[0].toDouble();
+                 pt->y = crds[1].toDouble();
+                 topY = pt->y>topY?pt->y:topY;
+                 buttomY = buttomY<pt->y?buttomY:pt->y;
+                 leftX = leftX<pt->x?leftX:pt->x;
+                 rightX = rightX>pt->x?rightX:pt->x;
 
-    }
-    else if (type=="Polygon") {
-        double topY=DBL_MIN,buttomY= DBL_MAX,leftX= DBL_MAX,rightX=DBL_MIN;
-        SfsPolygon *polygon = new SfsPolygon();
-        layer->geometries->append(polygon);
-        QJsonArray boundary_array = (*geojson)["coordinates"].toArray();//单个多边形层次，可能为有内点的，比如有孔的多边形
-        for(int m1=0;m1<boundary_array.size();m1++){
-            SfsLineString *boundary = new SfsLineString();
-            polygon->boundaries->append(boundary);
-            QJsonArray points_array = boundary_array[m1].toArray();
-            for(int m2=0;m2<points_array.size();m2++)
-            {
-                //坐标点数组层次
-                QJsonArray point_array = points_array[m2].toArray();
-                for (int m3=0;m3<point_array.size();m3++) {
-                    //坐标点层次
-                    SfsPoint * pt = new SfsPoint();
-                    boundary->pts->append(pt);
-                    pt->x = point_array[0].toDouble();
-                    pt->y = point_array[1].toDouble();
-                    topY = pt->y>topY?pt->y:topY;
-                    buttomY = buttomY<pt->y?buttomY:pt->y;
-                    leftX = leftX<pt->x?leftX:pt->x;
-                    rightX = rightX>pt->x?rightX:pt->x;
-                    pt->bbox->setBoundary(topY,buttomY,leftX,rightX);
-                }
-            }
+                 layer->geometries->append(pt);
+                 maxY = topY>maxY?topY:maxY;
+                 minY = buttomY<minY?buttomY:minY;
+                 maxX = rightX>maxX?rightX:maxX;
+                 minX = leftX<minX?leftX:minX;
 
-        }
-        polygon->bbox->setBoundary(topY,buttomY,leftX,rightX);
-        layer->bbox->setBoundary(topY,buttomY,leftX,rightX);
-    }
-    else if (type=="LineString") {
-        double topY=DBL_MIN,buttomY= DBL_MAX,leftX= DBL_MAX,rightX=DBL_MIN;
-        SfsLineString *lineString = new SfsLineString();
-        layer->geometries->append(lineString);
-        QJsonArray crds = (*geojson)["coordinates"].toArray();
-        for(int j=0;j<crds.size();j++){
-            QJsonArray crd = crds[j].toArray();
-            SfsPoint *pt = new SfsPoint();
-            lineString->pts->append(pt);
-            pt->x = crd[0].toDouble();
-            pt->y = crd[1].toDouble();
-            topY = pt->y>topY?pt->y:topY;
-            buttomY = buttomY<pt->y?buttomY:pt->y;
-            leftX = leftX<pt->x?leftX:pt->x;
-            rightX = rightX>pt->x?rightX:pt->x;
-            pt->bbox->setBoundary(topY,buttomY,leftX,rightX);
-        }
-        lineString->bbox->setBoundary(topY,buttomY,leftX,rightX);
-        layer->bbox->setBoundary(topY,buttomY,leftX,rightX);
-    }
-    else if (type=="MultiPoint") {
-        double topY=DBL_MIN,buttomY= DBL_MAX,leftX= DBL_MAX,rightX=DBL_MIN;
-        QJsonArray crds = (*geojson)["coordinates"].toArray();
-        for(int j=0;j<crds.size();j++){
-            QJsonArray crd = crds[j].toArray();
-            SfsPoint *pt = new SfsPoint();
-            layer->geometries->append(pt);
-            pt->x = crd[0].toDouble();
-            pt->y = crd[1].toDouble();
-            topY = pt->y>topY?pt->y:topY;
-            buttomY = buttomY<pt->y?buttomY:pt->y;
-            leftX = leftX<pt->x?leftX:pt->x;
-            rightX = rightX>pt->x?rightX:pt->x;
-        }
-        layer->bbox->setBoundary(topY,buttomY,leftX,rightX);
-    }
-    else if (type=="MultiLineString") {
-        QJsonArray array = (*geojson)["coordinates"].toArray();
-        for(int k = 0;k<array.size();k++){
-            double topY=DBL_MIN,buttomY= DBL_MAX,leftX= DBL_MAX,rightX=DBL_MIN;
-            SfsLineString *lineString = new SfsLineString();
-            layer->geometries->append(lineString);
-            QJsonArray crd_array = array[k].toArray();
-            for (int j=0;j<crd_array.size();j++) {
-                //每次都会读到一个点数组（array表示）
-                QJsonArray crds = crd_array[j].toArray();
-                SfsPoint * pt = new SfsPoint();
-                pt->x = crds[0].toDouble();
-                pt->y = crds[1].toDouble();
-                topY = pt->y>topY?pt->y:topY;
-                buttomY = buttomY<pt->y?buttomY:pt->y;
-                leftX = leftX<pt->x?leftX:pt->x;
-                rightX = rightX>pt->x?rightX:pt->x;
-                pt->bbox->setBoundary(topY,buttomY,leftX,rightX);
-                lineString->pts->append(pt);
-            }
-            lineString->bbox->setBoundary(topY,buttomY,leftX,rightX);
-            maxY = topY>maxY?topY:maxY;
-            minY = buttomY<minY?buttomY:minY;
-            maxX = rightX>maxX?rightX:maxX;
-            minX = leftX<minX?leftX:minX;
-        }
-        layer->bbox->setBoundary(maxY,minY,minX,minX);
+             }
+             if(Geometry=="Polygon"){
+                double topY=DBL_MIN,buttomY= DBL_MAX,leftX= DBL_MAX,rightX=DBL_MIN;
+                QJsonArray polygon_array = geometry["coordinates"].toArray();//
+                SfsPolygon *polygon = new SfsPolygon();
+                polygon->setId(id++);
+                layer->geometries->append(polygon);
+                for(int m1=0;m1<polygon_array.size();m1++){
+                    //面的边界层次，内边界和外边界
+                    SfsLineString *boundary = new SfsLineString();
+                    polygon->boundaries->append(boundary);
 
-    }
-    else if (type=="MultiPolygon") {
-        QJsonArray polygons_array = (*geojson)["coordinates"].toArray();//多 个 多边形层次
-        for(int m1 =0;m1<polygons_array.size();m1++){
-            double topY=DBL_MIN,buttomY= DBL_MAX,leftX= DBL_MAX,rightX=DBL_MIN;
-            SfsPolygon *polygon = new SfsPolygon();
-            layer->geometries->append(polygon);
-            QJsonArray polygon_array = polygons_array[m1].toArray();//单个多边形层次
-            for(int m2=0;m2<polygon_array.size();m2++){
-                //单个多边形层次，可能为有内点的，比如有孔的多边形
-                SfsLineString *boundary = new SfsLineString();
-                polygon->boundaries->append(boundary);
-                QJsonArray points_array = polygon_array[m2].toArray();
-                for(int m3=0;m3<points_array.size();m3++)
-                {
-                    //坐标点数组层次
-                    QJsonArray point_array = points_array[m3].toArray();
-                    for (int m4=0;m4<point_array.size();m4++) {
-                        //每次都会读到一个点数组（array表示）
+                    QJsonArray points_array = polygon_array[m1].toArray();
+                    for(int m2=0;m2<points_array.size();m2++)
+                    {
+                        //坐标点数组层次
+                        QJsonArray point_array = points_array[m2].toArray();
                         SfsPoint * pt = new SfsPoint();
-                        boundary->pts->append(pt);
                         pt->x = point_array[0].toDouble();
                         pt->y = point_array[1].toDouble();
+                        boundary->pts->append(pt);
                         topY = pt->y>topY?pt->y:topY;
                         buttomY = buttomY<pt->y?buttomY:pt->y;
                         leftX = leftX<pt->x?leftX:pt->x;
                         rightX = rightX>pt->x?rightX:pt->x;
-                        pt->bbox->setBoundary(topY,buttomY,leftX,rightX);
+
                     }
                 }
+                polygon->bbox->setBoundary(topY,buttomY,leftX,rightX);
+                maxY = topY>maxY?topY:maxY;
+                minY = buttomY<minY?buttomY:minY;
+                maxX = rightX>maxX?rightX:maxX;
+                minX = leftX<minX?leftX:minX;
+             }
+             if(Geometry=="LineString"){
+                 double topY=DBL_MIN,buttomY= DBL_MAX,leftX= DBL_MAX,rightX=DBL_MIN;
+                 SfsLineString *lineString = new SfsLineString();
+                 lineString->setId(id++);
+                 layer->geometries->append(lineString);
+                 QJsonArray crds = geometry["coordinates"].toArray();
+                 for(int j=0;j<crds.size();j++){
+                     QJsonArray crd = crds[j].toArray();
+                     SfsPoint *pt = new SfsPoint();
+                     lineString->pts->append(pt);
+                     pt->x = crd[0].toDouble();
+                     pt->y = crd[1].toDouble();
+                     topY = pt->y>topY?pt->y:topY;
+                     buttomY = buttomY<pt->y?buttomY:pt->y;
+                     leftX = leftX<pt->x?leftX:pt->x;
+                     rightX = rightX>pt->x?rightX:pt->x;
+                 }
+                 lineString->bbox->setBoundary(topY,buttomY,leftX,rightX);
+                 maxY = topY>maxY?topY:maxY;
+                 minY = buttomY<minY?buttomY:minY;
+                 maxX = rightX>maxX?rightX:maxX;
+                 minX = leftX<minX?leftX:minX;
+             }
+             if(Geometry=="MultiPoint"){
+                 double topY=DBL_MIN,buttomY= DBL_MAX,leftX= DBL_MAX,rightX=DBL_MIN;
+                 QJsonArray crds = geometry["coordinates"].toArray();
+                 for(int j=0;j<crds.size();j++){
+                     QJsonArray crd = crds[j].toArray();
+                     SfsPoint *pt = new SfsPoint();
+                     pt->setId(id++);
+                     layer->geometries->append(pt);
+                     pt->x = crd[0].toDouble();
+                     pt->y = crd[1].toDouble();
+                     topY = pt->y>topY?pt->y:topY;
+                     buttomY = buttomY<pt->y?buttomY:pt->y;
+                     leftX = leftX<pt->x?leftX:pt->x;
+                     rightX = rightX>pt->x?rightX:pt->x;
+                 }
+                 maxY = topY>maxY?topY:maxY;
+                 minY = buttomY<minY?buttomY:minY;
+                 maxX = rightX>maxX?rightX:maxX;
+                 minX = leftX<minX?leftX:minX;
+             }
+             if(Geometry=="MultiLineString"){
+                 QJsonArray array = geometry["coordinates"].toArray();
+                 for(int k = 0;k<array.size();k++){
+                     double topY=DBL_MIN,buttomY= DBL_MAX,leftX= DBL_MAX,rightX=DBL_MIN;
+                     SfsLineString *lineString = new SfsLineString();
+                     layer->geometries->append(lineString);
+                     QJsonArray crd_array = array[k].toArray();
+                     for (int j=0;j<crd_array.size();j++) {
+                         //每次都会读到一个点数组（array表示）
+                         QJsonArray crds = crd_array[j].toArray();
+                         SfsPoint * pt = new SfsPoint();
+                         pt->x = crds[0].toDouble();
+                         pt->y = crds[1].toDouble();
+                         topY = pt->y>topY?pt->y:topY;
+                         buttomY = buttomY<pt->y?buttomY:pt->y;
+                         leftX = leftX<pt->x?leftX:pt->x;
+                         rightX = rightX>pt->x?rightX:pt->x;
 
-            }
-            maxY = topY>maxY?topY:maxY;
-            minY = buttomY<minY?buttomY:minY;
-            maxX = rightX>maxX?rightX:maxX;
-            minX = leftX<minX?leftX:minX;
-            polygon->bbox->setBoundary(topY,buttomY,leftX,rightX);
+                         lineString->pts->append(pt);
+                     }
+                     lineString->bbox->setBoundary(topY,buttomY,leftX,rightX);
+                     maxY = topY>maxY?topY:maxY;
+                     minY = buttomY<minY?buttomY:minY;
+                     maxX = rightX>maxX?rightX:maxX;
+                     minX = leftX<minX?leftX:minX;
+                 }
+             }
+             if(Geometry=="MultiPolygon"){
+                 QJsonArray polygons_array = geometry["coordinates"].toArray();//多 个 多边形层次
+                 for(int m1 =0;m1<polygons_array.size();m1++){
+                     double topY=DBL_MIN,buttomY= DBL_MAX,leftX= DBL_MAX,rightX=DBL_MIN;
+                     SfsPolygon *polygon = new SfsPolygon();
+                     polygon->setId(id++);
+                     layer->geometries->append(polygon);
+                     QJsonArray polygon_array = polygons_array[m1].toArray();//单个多边形层次
+                     for(int m2=0;m2<polygon_array.size();m2++){
+                         //单个多边形层次，可能为有内点的，比如有孔的多边形
+                         SfsLineString *boundary = new SfsLineString();
+                         polygon->boundaries->append(boundary);
+                         QJsonArray points_array = polygon_array[m2].toArray();
+                         for(int m3=0;m3<points_array.size();m3++)
+                         {
+                             //坐标点数组层次
+                             QJsonArray point_array = points_array[m3].toArray();
+                             for (int m4=0;m4<point_array.size();m4++) {
+                                 //每次都会读到一个点数组（array表示）
+                                 SfsPoint * pt = new SfsPoint();
+                                 boundary->pts->append(pt);
+                                 pt->x = point_array[0].toDouble();
+                                 pt->y = point_array[1].toDouble();
+                                 topY = pt->y>topY?pt->y:topY;
+                                 buttomY = buttomY<pt->y?buttomY:pt->y;
+                                 leftX = leftX<pt->x?leftX:pt->x;
+                                 rightX = rightX>pt->x?rightX:pt->x;
+                             }
+                         }
+                     }
+                     maxY = topY>maxY?topY:maxY;
+                     minY = buttomY<minY?buttomY:minY;
+                     maxX = rightX>maxX?rightX:maxX;
+                     minX = leftX<minX?leftX:minX;
+                     polygon->bbox->setBoundary(topY,buttomY,leftX,rightX);
+                  }
+             }
          }
-        layer->bbox->setBoundary(maxY,minY,minX,minX);
-    }
+         layer->bbox->setBoundary(maxY,minY,minX,maxX);
+     }
+     else if (type=="Polygon") {
+         double topY=DBL_MIN,buttomY= DBL_MAX,leftX= DBL_MAX,rightX=DBL_MIN;
+         SfsPolygon *polygon = new SfsPolygon();
+         polygon->setId(id++);
+         layer->geometries->append(polygon);
+         QJsonArray boundary_array = (*geojson)["coordinates"].toArray();//单个多边形层次，可能为有内点的，比如有孔的多边形
+         for(int m1=0;m1<boundary_array.size();m1++){
+             SfsLineString *boundary = new SfsLineString();
+             polygon->boundaries->append(boundary);
+             QJsonArray points_array = boundary_array[m1].toArray();
+             for(int m2=0;m2<points_array.size();m2++)
+             {
+                 //坐标点数组层次
+                 QJsonArray point_array = points_array[m2].toArray();
+                 for (int m3=0;m3<point_array.size();m3++) {
+                     //坐标点层次
+                     SfsPoint * pt = new SfsPoint();
+                     boundary->pts->append(pt);
+                     pt->x = point_array[0].toDouble();
+                     pt->y = point_array[1].toDouble();
+                     topY = pt->y>topY?pt->y:topY;
+                     buttomY = buttomY<pt->y?buttomY:pt->y;
+                     leftX = leftX<pt->x?leftX:pt->x;
+                     rightX = rightX>pt->x?rightX:pt->x;
+                     pt->bbox->setBoundary(topY,buttomY,leftX,rightX);
+                 }
+             }
 
-    qDebug()<<"Loading successed";
+         }
+         polygon->bbox->setBoundary(topY,buttomY,leftX,rightX);
+         layer->bbox->setBoundary(topY,buttomY,leftX,rightX);
+     }
+     else if (type=="LineString") {
+         double topY=DBL_MIN,buttomY= DBL_MAX,leftX= DBL_MAX,rightX=DBL_MIN;
+         SfsLineString *lineString = new SfsLineString();
+         lineString->setId(id++);
+         layer->geometries->append(lineString);
+         QJsonArray crds = (*geojson)["coordinates"].toArray();
+         for(int j=0;j<crds.size();j++){
+             QJsonArray crd = crds[j].toArray();
+             SfsPoint *pt = new SfsPoint();
+             lineString->pts->append(pt);
+             pt->x = crd[0].toDouble();
+             pt->y = crd[1].toDouble();
+             topY = pt->y>topY?pt->y:topY;
+             buttomY = buttomY<pt->y?buttomY:pt->y;
+             leftX = leftX<pt->x?leftX:pt->x;
+             rightX = rightX>pt->x?rightX:pt->x;
+             pt->bbox->setBoundary(topY,buttomY,leftX,rightX);
+         }
+         lineString->bbox->setBoundary(topY,buttomY,leftX,rightX);
+         layer->bbox->setBoundary(topY,buttomY,leftX,rightX);
+     }
+     else if (type=="MultiPoint") {
+         double topY=DBL_MIN,buttomY= DBL_MAX,leftX= DBL_MAX,rightX=DBL_MIN;
+         QJsonArray crds = (*geojson)["coordinates"].toArray();
+         for(int j=0;j<crds.size();j++){
+             QJsonArray crd = crds[j].toArray();
+             SfsPoint *pt = new SfsPoint();
+             pt->setId(id++);
+             layer->geometries->append(pt);
+             pt->x = crd[0].toDouble();
+             pt->y = crd[1].toDouble();
+             topY = pt->y>topY?pt->y:topY;
+             buttomY = buttomY<pt->y?buttomY:pt->y;
+             leftX = leftX<pt->x?leftX:pt->x;
+             rightX = rightX>pt->x?rightX:pt->x;
+         }
+         layer->bbox->setBoundary(topY,buttomY,leftX,rightX);
+     }
+     else if (type=="MultiLineString") {
+         QJsonArray array = (*geojson)["coordinates"].toArray();
+         for(int k = 0;k<array.size();k++){
+             double topY=DBL_MIN,buttomY= DBL_MAX,leftX= DBL_MAX,rightX=DBL_MIN;
+             SfsLineString *lineString = new SfsLineString();
+             lineString->setId(id++);
+             layer->geometries->append(lineString);
+             QJsonArray crd_array = array[k].toArray();
+             for (int j=0;j<crd_array.size();j++) {
+                 //每次都会读到一个点数组（array表示）
+                 QJsonArray crds = crd_array[j].toArray();
+                 SfsPoint * pt = new SfsPoint();
+                 pt->x = crds[0].toDouble();
+                 pt->y = crds[1].toDouble();
+                 topY = pt->y>topY?pt->y:topY;
+                 buttomY = buttomY<pt->y?buttomY:pt->y;
+                 leftX = leftX<pt->x?leftX:pt->x;
+                 rightX = rightX>pt->x?rightX:pt->x;
+                 pt->bbox->setBoundary(topY,buttomY,leftX,rightX);
+                 lineString->pts->append(pt);
+             }
+             lineString->bbox->setBoundary(topY,buttomY,leftX,rightX);
+             maxY = topY>maxY?topY:maxY;
+             minY = buttomY<minY?buttomY:minY;
+             maxX = rightX>maxX?rightX:maxX;
+             minX = leftX<minX?leftX:minX;
+         }
+         layer->bbox->setBoundary(maxY,minY,minX,maxX);
+
+     }
+     else if (type=="MultiPolygon") {
+         QJsonArray polygons_array = (*geojson)["coordinates"].toArray();//多 个 多边形层次
+         for(int m1 =0;m1<polygons_array.size();m1++){
+             double topY=DBL_MIN,buttomY= DBL_MAX,leftX= DBL_MAX,rightX=DBL_MIN;
+             SfsPolygon *polygon = new SfsPolygon();
+             polygon->setId(id++);
+             layer->geometries->append(polygon);
+             QJsonArray polygon_array = polygons_array[m1].toArray();//单个多边形层次
+             for(int m2=0;m2<polygon_array.size();m2++){
+                 //单个多边形层次，可能为有内点的，比如有孔的多边形
+                 SfsLineString *boundary = new SfsLineString();
+                 polygon->boundaries->append(boundary);
+                 QJsonArray points_array = polygon_array[m2].toArray();
+                 for(int m3=0;m3<points_array.size();m3++)
+                 {
+                     //坐标点数组层次
+                     QJsonArray point_array = points_array[m3].toArray();
+                     for (int m4=0;m4<point_array.size();m4++) {
+                         //每次都会读到一个点数组（array表示）
+                         SfsPoint * pt = new SfsPoint();
+                         boundary->pts->append(pt);
+                         pt->x = point_array[0].toDouble();
+                         pt->y = point_array[1].toDouble();
+                         topY = pt->y>topY?pt->y:topY;
+                         buttomY = buttomY<pt->y?buttomY:pt->y;
+                         leftX = leftX<pt->x?leftX:pt->x;
+                         rightX = rightX>pt->x?rightX:pt->x;
+                         pt->bbox->setBoundary(topY,buttomY,leftX,rightX);
+                     }
+                 }
+
+             }
+             maxY = topY>maxY?topY:maxY;
+             minY = buttomY<minY?buttomY:minY;
+             maxX = rightX>maxX?rightX:maxX;
+             minX = leftX<minX?leftX:minX;
+             polygon->bbox->setBoundary(topY,buttomY,leftX,rightX);
+          }
+         layer->bbox->setBoundary(maxY,minY,minX,maxX);
+     }
+
+     qDebug()<<"Loading successed";
 }
 
 void FileReader::ShpfileReader(GDALDataset *pDoc, SfsLayer *layer)
@@ -521,6 +573,7 @@ void FileReader::ShpfileReader(GDALDataset *pDoc, SfsLayer *layer)
         int nGeomFieldCount;
         while ((ogrfeature=ogrlayer->GetNextFeature())!=nullptr) {
             Properties *properties = new Properties();
+            nGeomFieldCount = ogrfeature->GetGeomFieldCount();
             for (int j=0;j<proCount;j++) {
                 OGRFieldDefn *poFieldDefn = poFDefn->GetFieldDefn(j);
                 switch (poFieldDefn->GetType()){
@@ -550,18 +603,11 @@ void FileReader::ShpfileReader(GDALDataset *pDoc, SfsLayer *layer)
                         (*value) = ogrfeature->GetFieldAsString(j);
                         properties->ProValue->append(value);
 
-
-//                        QString filepath = "D:/QtProject/NLPIR-master/NLPIR SDK/NLPIR-ICTCLAS";
-//                        NLPIR_Init(filepath.toStdString().c_str(),UTF8_CODE,"0f7977c44f2a601dffa078c14aeadbfc4ddc2990");
-//                        QString t = NLPIR_ParagraphProcess((*value).toStdString().c_str(),ICT_POS_MAP_SECOND);
-//                        QString a = QString::fromLocal8Bit("美");
-//                        qDebug()<<t;
-
                         break;
                     }
                 case OFTReal:
                     {
-                        properties->ProType->append(Int_PRO);
+                        properties->ProType->append(Double_PRO);
                         properties->ProName->append(poFDefn->GetFieldDefn(j)->GetNameRef());
                         double *value = new double;
                         (*value) = ogrfeature->GetFieldAsDouble(j);
@@ -579,8 +625,7 @@ void FileReader::ShpfileReader(GDALDataset *pDoc, SfsLayer *layer)
                     }
                 }
             }
-            nGeomFieldCount = ogrfeature->GetGeomFieldCount();//得到feature的几何对象的个数
-            //循环建立
+              //循环建立
             for (iGeomField=0;iGeomField<nGeomFieldCount;iGeomField++) {
                 poGeometry = ogrfeature->GetGeomFieldRef(iGeomField);
                 //根据几何类型生成 对象
@@ -648,6 +693,7 @@ void FileReader::ShpfileReader(GDALDataset *pDoc, SfsLayer *layer)
                     buttomY = buttomY<pt->y?buttomY:pt->y;
                     leftX = leftX<pt->x?leftX:pt->x;
                     rightX = rightX>pt->x?rightX:pt->x;
+                    pt->bbox->setBoundary(topY,buttomY,leftX,rightX);
                     //读取图层的范围
                     maxY = topY>maxY?topY:maxY;
                     minY = buttomY<minY?buttomY:minY;
@@ -692,6 +738,8 @@ void FileReader::ShpfileReader(GDALDataset *pDoc, SfsLayer *layer)
                         buttomY = buttomY<pt->y?buttomY:pt->y;
                         leftX = leftX<pt->x?leftX:pt->x;
                         rightX = rightX>pt->x?rightX:pt->x;
+
+                        pt->bbox->setBoundary(topY,buttomY,leftX,rightX);
                     }
                     //读取图层的范围
                     maxY = topY>maxY?topY:maxY;
@@ -781,6 +829,9 @@ void FileReader::ShpfileReader(GDALDataset *pDoc, SfsLayer *layer)
         }
         layer->setGeometype(layer->geometries->value(0)->GeometryType());//为图层设置图层属性，图层至少有一个要素
         layer->bbox->setBoundary(maxY,minY,minX,maxX);
+    }
+    for(int n=0;n<layer->geometries->size();n++){
+        layer->geometries->at(n)->setId(n);
     }
 }
 
@@ -1045,6 +1096,9 @@ void FileReader::LoadPostGIS(OGRLayer *ogrlayer, SfsLayer *layer)
                     }
                 }
             }
+        }
+        for(int n=0;n<layer->geometries->size();n++){
+            layer->geometries->at(n)->setId(n);
         }
         layer->setGeometype(layer->geometries->value(0)->GeometryType());//为图层设置图层属性，图层至少有一个要素
         layer->bbox->setBoundary(maxY,minY,minX,maxX);

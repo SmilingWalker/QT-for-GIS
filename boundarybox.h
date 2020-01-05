@@ -34,6 +34,8 @@ public:
     bool isPointInRect(SfsPoint* point);
     bool isLineStringOverlapRect(SfsLineString* line);
     bool isPolygonOverlapRect(SfsPolygon* polygon);
+    bool isBboxIntersect(BoundaryBox* bbox);
+    void getVertexs(SfsPoint* pts);
 
 
 private:

@@ -1,4 +1,5 @@
-#include "SFS/sfsgeometry.h"
+#include "sfsgeometry.h"
+#include "sfslayer.h"
 
 SfsGeometry::~SfsGeometry()
 {
@@ -7,44 +8,22 @@ SfsGeometry::~SfsGeometry()
         delete bbox;
         bbox = nullptr;
     }
-    if(properties!=nullptr)
-    {
+    if( properties != nullptr){
         delete properties;
-        properties=nullptr;
+        properties = nullptr;
     }
+
 }
 
 SfsGeometry::SfsGeometry()
 {
-    // 初始默认都有边界和属性
     bbox = new BoundaryBox();
     properties = new Properties();
 }
 
-
 SfsGeometry *SfsGeometry::boundary()
 {
     return nullptr;
-}
-
-QString SfsGeometry::getName() const
-{
-    return name;
-}
-
-void SfsGeometry::setName(const QString &value)
-{
-    name = value;
-}
-
-Properties *SfsGeometry::getProperties() const
-{
-    return properties;
-}
-
-void SfsGeometry::setProperties(Properties *value)
-{
-    properties = value;
 }
 
 unsigned int SfsGeometry::getId() const
@@ -65,4 +44,35 @@ bool SfsGeometry::getIsSelected() const
 void SfsGeometry::setIsSelected(bool value)
 {
     isSelected = value;
+}
+
+void SfsGeometry::setProperties(Properties *properties)
+{
+    this->properties = properties;
+}
+
+Properties *SfsGeometry::getProperties() const
+{
+    return properties;
+}
+
+void SfsGeometry::withinDist(SfsLayer* layer, double dist, QVector<SfsGeometry*> *geometries)
+{
+
+}
+
+void SfsGeometry::addProperty(QString name, int type, void *value)
+{
+    properties->addProperty(name, type, value);
+}
+
+void SfsGeometry::getPropertyValAt(int index, QVariant* value)
+{
+    properties->getPropertyValAt(index, value);
+}
+
+int SfsGeometry::getPropertyTypeAt(int index)
+{
+    int type = properties->getProprtyTypeAt(index);
+    return type;
 }

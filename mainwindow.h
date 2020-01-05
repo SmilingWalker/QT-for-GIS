@@ -43,6 +43,8 @@
 #include<QMenu>
 #include<variousDialogs.h>
 #include<NLPIR.h>
+#include<kernel_showwidget.h>
+
 
 
 QT_BEGIN_NAMESPACE
@@ -58,6 +60,7 @@ public:
     ~MainWindow();
     void LoadGeoJsonFile(QString filename);
     void LoadShpfile(QString filename);
+    void Generate_JPG();
 
 private slots:
     void on_actionGeoJSON_triggered();
@@ -71,6 +74,8 @@ private slots:
     void on_GridIndex_triggered();
 
     void on_textIndex_triggered();
+
+    void on_Kernel_caculate_triggered();
 
 private:
     Ui::MainWindow *ui;
@@ -86,6 +91,7 @@ public:
     QTableWidget * searchRes;//检索结果返回，显示
     PRQuadTree *QuarTree;
     bool Selection;
+    Kernel_ShowWidget *window;
 signals:
     void SelectionChange();
     void RenderMap(SfsLayer *layer);

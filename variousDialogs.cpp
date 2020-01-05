@@ -237,13 +237,12 @@ KernelDensityForm::KernelDensityForm(SfsMap* map){
     layer = nullptr;
 
     this->setWindowTitle("Kernel Density Estimation");
-    this->setFixedSize(450, 310);
+    this->setFixedSize(450, 380);
 
-    trigger = -1;
     bandWidth = -1;
-    defaultBandWidth = -1;
     propertyIndex = -1;
     layerIndex = -1;
+    cellSize = -1;
 
     layerIndexLbl = new QLabel("Layer Index:", this);
     layerIndexLbl->move(50, 40);
@@ -253,36 +252,46 @@ KernelDensityForm::KernelDensityForm(SfsMap* map){
     for(int i = 0; i < layerSize; i++){
         layerIndexCb->addItem(map->layers->at(i)->getName());
     }
+    layerIndexCb->setCurrentIndex(-1);
 
-    layerIndex = layerIndexCb->currentIndex();
-    this->layer = map->layers->at(layerIndex);
 
     propertyLbl = new QLabel("Property:", this);
     propertyLbl->move(60, 120);
     propertyCb = new QComboBox(this);
     propertyCb->move(155, 120);
+    propertyCb->setCurrentIndex(-1);
 
 
-    Properties* property = layer->geometries->at(0)->getProperties();
+    /*Properties* property = layer->geometries->at(0)->getProperties();
     int propertySize = property->ProName->size();
     for(int i = 0; i < propertySize; i++){
         //未考虑属性类型是否合法
         propertyCb->addItem(property->ProName->at(i));
-    }
+    }*/
 
     bandWidthLbl = new QLabel("Band-Width:", this);
     bandWidthLbl->move(55, 200);
     bandWidthCb = new QComboBox(this);
     bandWidthCb->move(155, 200);
+    bandWidthCb->setEditable(true);
+    bandWidthCb->addItem("Default");
+    bandWidthCb->setCurrentIndex(-1);
+
+    cellSizeLbl = new QLabel("Cell Size:", this);
+    cellSizeLbl->move(55, 280);
+    cellSizeLet = new QLineEdit(this);
+    cellSizeLet->move(155, 280);
 
     applyBtn = new QPushButton("Apply", this);
-    applyBtn->move(50, 260);
+    applyBtn->move(50, 340);
     cancelBtn = new QPushButton("Cancel", this);
-    cancelBtn->move(180, 260);
+    cancelBtn->move(180, 340);
 
     //选择图层后，触发属性添加函数
     connect(layerIndexCb, SIGNAL(currentIndexChanged(int)), this, SLOT(on_LayerIndex_Changed()));
-    //点击apply按钮提交输入，然后对输入格式进行检查。如果检查通过，设置sld；如果不通过，更改输入
+    //选择属性后，触发属性选择和检查函数
+    connect(propertyCb, SIGNAL(currentIndexChanged(int)), this, SLOT(on_PropertyIndex_Changed()));
+    //点击apply按钮提交输入
     connect(applyBtn, SIGNAL(clicked()), this, SLOT(applyArgs()));
     //点击cancel取消设置
     connect(cancelBtn, SIGNAL(clicked()), this, SLOT(cancelSetting()));
@@ -299,31 +308,68 @@ KernelDensityForm::~KernelDensityForm(){
     delete applyBtn;
     delete cancelBtn;
 }
+
+int KernelDensityForm::getPropertyIndex() const
+{
+    return propertyIndex;
+}
 void KernelDensityForm::applyArgs(){
+    //检查输入合法性
+    if(bandWidthCb->currentIndex()!= -1){
+        QString text = bandWidthCb->currentText();
+        bool ok;
+        double bandWidth = text.toDouble(&ok);
+        if(ok){
+            this->bandWidth = bandWidth;
+        }
+        else if(text == "Default"){
+            this->bandWidth = -1;
+        }
+        else{
+            QMessageBox::warning(this, tr("Warning!"),tr("Bandwidth invalid!"), QMessageBox::Yes);
+            return;
+        }
+    }
+    else if(bandWidthCb->currentIndex()== -1){
+        this->bandWidth = -1;
+    }
+
+    Properties* property = layer->geometries->at(0)->getProperties();
+    if(property->getProprtyTypeAt(propertyIndex)!= Double_PRO){
+        propertyIndex = -1;
+        QMessageBox::warning(this, tr("Warning!"),tr("Property is not double!"), QMessageBox::Yes);
+        return;
+    }
+
+    QString cellSizeTxt;
+    cellSizeTxt = cellSizeLet->text();
+    if(layerIndex == -1 || propertyIndex == -1 || cellSizeTxt == ""){
+        QMessageBox::warning(this, tr("Warning!"),tr("Input incomplete!"), QMessageBox::Yes);
+        return;
+    }
+    bool ok;
+    cellSize = cellSizeTxt.toDouble(&ok);
+    if(!ok){
+        cellSize = -1;
+        QMessageBox::warning(this, tr("Warning!"),tr("Cell Size illegal!"), QMessageBox::Yes);
+        return;
+    }
+
     accept();
 }
 
-int KernelDensityForm::getIndex() const{
-    return trigger;
+
+int KernelDensityForm::getLayerIndex() const{
+    return layerIndex;
+}
+
+double KernelDensityForm::getCellSize() const
+{
+    return cellSize;
 }
 
 float KernelDensityForm::getBandWidth() const{
-    if(bandWidth > -1.00001f && bandWidth < -0.99999f){
-        return defaultBandWidth;
-    }
-    else{
-        return bandWidth;
-    }
-}
-
-float KernelDensityForm::computeDefaultBandWidth(SfsLayer* layer){
-
-    return 0;
-}
-
-SfsLayer *KernelDensityForm::getLayer() const
-{
-    return layer;
+    return bandWidth;
 }
 
 void KernelDensityForm::setLayer(SfsLayer *value)
@@ -343,8 +389,45 @@ void KernelDensityForm::on_LayerIndex_Changed()
     int size = property->ProName->size();
 
     propertyCb->clear();
+    isDouble.clear();
     for(int i = 0; i < size; i++){
         //未考虑属性类型是否合法
-        propertyCb->addItem(property->ProName->at(i));
+        if(property->getProprtyTypeAt(i)!= Double_PRO){
+            isDouble.append(false);
+        }
+        else{
+            propertyCb->addItem(property->ProName->at(i));
+            isDouble.append(true);
+        }
+    }
+}
+
+void KernelDensityForm::on_PropertyIndex_Changed()
+{
+    int currentIndex = propertyCb->currentIndex();
+    if(currentIndex != -1){
+        Properties* property = layer->geometries->at(0)->getProperties();
+        int propertySize = property->ProName->size();
+        int listIndex = -1;
+        int i;
+        for(i = 0; i < propertySize; i++){
+            if(listIndex < currentIndex){
+                if(property->getProprtyTypeAt(i) == Double_PRO){
+                    listIndex++;
+                }
+            }
+            else{
+                break;
+            }
+        }
+        propertyIndex = i-1;
+        if(property->getProprtyTypeAt(propertyIndex)!= Double_PRO){
+            propertyIndex = -1;
+            QMessageBox::warning(this, tr("Warning!"),tr("Property is not double!"), QMessageBox::Yes);
+            return;
+        }
+    }
+    else{
+        qDebug()<<"Why it happens?"<<endl;
     }
 }

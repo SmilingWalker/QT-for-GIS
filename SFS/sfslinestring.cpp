@@ -3,7 +3,6 @@
 SfsLineString::SfsLineString()
 {
     pts = new QVector<SfsPoint*>();
-    setName("LineString");
 }
 
 int SfsLineString::numPoints()

@@ -51,6 +51,7 @@ void LayerTree::LoadSld()
             //如何来重绘，这里应该不需要再去将数据重新生成VAO和VBO，只需要绘制的模式即可
             //所以只需要update一下glwidget即可，而不是animate
             //ui->glwidget->animate(render.at(triggerdItemIndex));
+            delete sldDoc;
             updateMap();
         }
     }

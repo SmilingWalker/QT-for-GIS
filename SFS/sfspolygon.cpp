@@ -3,7 +3,6 @@
 SfsPolygon::SfsPolygon()
 {
     boundaries = new QVector<SfsLineString*>;
-    setName("Polygon");
 }
 
 SfsLineString *SfsPolygon::exterorRing()

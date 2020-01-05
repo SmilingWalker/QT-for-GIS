@@ -8,6 +8,10 @@
 #include<variousDialogs.h>
 #include<QTextCodec>
 #include<stdlib.h>
+#include<QColorDialog>
+#include<qimage.h>
+#include<kernel_show.h>
+#include <Tool/Kernel/kerneldensity.h>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -40,7 +44,6 @@ MainWindow::MainWindow(QWidget *parent)
 //    std::string string = "湖北武汉汉南疆南昌";
 //    const char *str = "智能化信息处理";
 //    qDebug()<<(QString::fromLocal8Bit(NLPIR_ParagraphProcess(string.data(),ICT_POS_MAP_SECOND)));
-
 }
 
 MainWindow::~MainWindow()
@@ -69,7 +72,6 @@ void MainWindow::on_actionGeoJSON_triggered()
             fileReader->GeoJsonReader(&geojson,layer);
             SetTree(layer);
             RenderMap(layer);
-
         }
     }
 
@@ -110,6 +112,29 @@ void MainWindow::LoadShpfile(QString filename)
     //**传递图层到glwidget
     RenderMap(layer);
 
+}
+
+void MainWindow::Generate_JPG()
+{
+//    QImage *image = new QImage(700,600,QImage::Format_RGB32);
+//    if(image!=nullptr){
+//        for(int i=0;i<700;i++){
+//            for(int j=0;j<600;j++){
+//                QColor color;
+
+//                color.setRgb(i/4,j/4,10);
+//                image->setPixelColor(i,j,color);
+//            }
+//        }
+//        image->save("kernel.bmp","BMP",100);
+//    }
+//    Kernel_ShowWidget *window = new Kernel_ShowWidget(this);
+//    window->image = image;
+//    window->setGeometry(this->rect());
+//    window->show();
+
+
+//    window->update();
 }
 
 void MainWindow::LoadPostgreSQL(OGRLayer *ogrlayer)
@@ -293,4 +318,32 @@ void MainWindow::on_textIndex_triggered()
         ContentDB *textdb = new ContentDB();
         layer->textDB = textdb;
         textdb->GenerateIndex(layer);    }
+}
+
+void MainWindow::on_Kernel_caculate_triggered()
+{
+    if(ui->glwidget->getMap()->layers->size()>0)
+    {
+        KernelDensityForm* dlg = new KernelDensityForm(ui->glwidget->getMap());
+        dlg->exec();
+        int layerIndex = dlg->getLayerIndex();
+        int propertyIndex = dlg->getPropertyIndex();
+        double bandWidth = dlg->getBandWidth();
+        double cellSize = dlg->getCellSize();
+
+        KernelDensity* KDE = new KernelDensity(ui->glwidget->getMap()->layers->at(layerIndex), cellSize, propertyIndex);
+        if(bandWidth == -1){
+            KDE->compute(KDE->defaultBandWidth());
+            }
+        if(KDE!=nullptr){
+            Kernel_show *window = new Kernel_show(nullptr,KDE);
+            QPoint pt(this->rect().x()+this->geometry().width(),this->geometry().y()+this->geometry().height()*0.5);
+            QWidget::mapToGlobal(pt);
+            window->setGeometry(pt.x(),pt.y(),this->geometry().width(),this->geometry().height());
+            window->show();
+        }
+    }
+    else{
+        QMessageBox::information(this,"information","No layer in map");
+    }
 }

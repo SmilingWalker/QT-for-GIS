@@ -205,3 +205,59 @@ bool BoundaryBox::isPolygonOverlapRect(SfsPolygon *polygon)
     }
     return false;
 }
+
+bool BoundaryBox::isBboxIntersect(BoundaryBox *bbox)
+{
+    //bbox格网值
+    //this是当前值
+    SfsPoint* thisPts = new SfsPoint[5];
+    for(int i = 0; i < 5; i++){
+        thisPts[i].x = 0;
+        thisPts[i].y = 0;
+    }
+
+    SfsPoint* thatPts = new SfsPoint[5];
+    for(int i = 0; i < 5; i++){
+        thatPts[i].x = 0;
+        thatPts[i].y = 0;
+    }
+    this->getVertexs(thisPts);
+    bbox->getVertexs(thatPts);
+    for(int i = 0; i < 4; i++){
+        if(isPointInRect(&thatPts[i])){
+            delete[] thisPts;
+            delete[] thatPts;
+            return true;
+        }
+    }
+    for(int i = 0; i < 4; i++){
+        for(int j = 0; j < 4; j++){
+            if(isLineStripsIntersect(&thisPts[i], &thisPts[i+1], &thatPts[j], &thatPts[j+1])){
+                delete[] thisPts;
+                delete[] thatPts;
+                return true;
+            }
+        }
+    }
+    delete[] thisPts;
+    delete[] thatPts;
+    return false;
+}
+
+void BoundaryBox::getVertexs(SfsPoint *pts)
+{
+    double T = this->getTopY();
+    double B = this->getBottomY();
+    double L = this->getLeftX();
+    double R = this->getRightX();
+    pts[0].x = L;
+    pts[0].y = T;
+    pts[1].x = R;
+    pts[1].y = T;
+    pts[2].x = R;
+    pts[2].y = B;
+    pts[3].x = L;
+    pts[3].y = B;
+    pts[4].x = L;
+    pts[4].y = T;
+}

@@ -73,27 +73,31 @@ class KernelDensityForm: public QDialog{
 public:
     KernelDensityForm(SfsMap* map);
     ~KernelDensityForm();
-    int getIndex() const;
+    int getPropertyIndex() const;
     float getBandWidth() const;
-
-    SfsLayer *getLayer() const;
+    int getLayerIndex() const;
+    double getCellSize() const;
     void setLayer(SfsLayer *value);
 
 public slots:
     void cancelSetting();
     void on_LayerIndex_Changed();
+    void on_PropertyIndex_Changed();
     void applyArgs();
 
 private:
-    float computeDefaultBandWidth(SfsLayer* layer);
     SfsMap* map;
     SfsLayer* layer;
     QLabel* layerIndexLbl;
     QLabel* bandWidthLbl;
     QLabel* propertyLbl;
+    QLabel* cellSizeLbl;
+    QLabel* savePathLbl;
     QComboBox* bandWidthCb;
     QComboBox* layerIndexCb;
     QComboBox* propertyCb;
+    QLineEdit* cellSizeLet;
+    //QLineEdit* savePathLet;
     QPushButton* applyBtn;
     QPushButton* cancelBtn;
     float defaultBandWidth;
@@ -103,6 +107,9 @@ private:
     int propertyIndex;
     int layerIndex;
     int max;
+    double cellSize;
+    //记录选中图层每个属性是否为double类型
+    QVector<bool> isDouble;
 };
 
 #endif // SLDSETTINGFORM_H

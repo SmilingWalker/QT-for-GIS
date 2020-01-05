@@ -3,10 +3,10 @@
 #include<qvector.h>
 #include<SFS/sfsgeometry.h>
 #include<SFS/sfsrender.h>
-#include <Index/gridindex.h>
 
 class PRQuadTree;
 class ContentDB;
+class GridIndex;
 class SfsLayer
 {
 public:
@@ -26,15 +26,19 @@ public:
 
     bool getVisible() const;
     void setVisible(bool value);
-    void createGridIndex(int row, int column);
 
+    void createGridIndex(int row, int column);
     GridIndex *getGridIndex() const;
+    double getWeightSumAt(int index);
+    int getPropertySize();
+    int getPropertyTypeAt(int index);
 
 private:
     QString name;
     GeoType Geometype;
     bool visible;
     GridIndex* gridIndex;
+    Properties* property;
 };
 
 #endif // SFSLAYER_H

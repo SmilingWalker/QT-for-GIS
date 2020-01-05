@@ -89,8 +89,15 @@
     <addaction name="GridIndex"/>
     <addaction name="textIndex"/>
    </widget>
+   <widget class="QMenu" name="menu_3">
+    <property name="title">
+     <string>工具</string>
+    </property>
+    <addaction name="Kernel_caculate"/>
+   </widget>
    <addaction name="menu"/>
    <addaction name="menu_2"/>
+   <addaction name="menu_3"/>
   </widget>
   <widget class="QStatusBar" name="statusBar">
    <property name="layoutDirection">
@@ -206,6 +213,11 @@
   <action name="textIndex">
    <property name="text">
     <string>图层文本索引</string>
+   </property>
+  </action>
+  <action name="Kernel_caculate">
+   <property name="text">
+    <string>核密度估计</string>
    </property>
   </action>
  </widget>

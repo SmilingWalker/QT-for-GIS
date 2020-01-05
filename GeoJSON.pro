@@ -40,11 +40,16 @@ SOURCES += \
     SFS/sfsrender.cpp \
     SLD/StringToColor.cpp \
     SLD/ogcsld.cpp \
+    Tool/Kernel/SpatialCalculation.cpp \
+    Tool/Kernel/kerneldensity.cpp \
+    Tool/Kernel/spatialstatistics.cpp \
     boundarybox.cpp \
     connect.cpp \
     contentdb.cpp \
     filereader.cpp \
     glwidget.cpp \
+    kernel_show.cpp \
+    kernel_showwidget.cpp \
     layertree.cpp \
     libhanz2piny/Hanz2Piny.cpp \
     main.cpp \
@@ -76,11 +81,16 @@ HEADERS += \
     SFS/sfsrender.h \
     SLD/StringToColor.h \
     SLD/ogcsld.h \
+    Tool/Kernel/SpatialCalculation.h \
+    Tool/Kernel/kerneldensity.h \
+    Tool/Kernel/spatialstatistics.h \
     boundarybox.h \
     connect.h \
     contentdb.h \
     filereader.h \
     glwidget.h \
+    kernel_show.h \
+    kernel_showwidget.h \
     layertree.h \
     libhanz2piny/Hanz2Piny.h \
     libhanz2piny/checked.h \
@@ -97,6 +107,7 @@ HEADERS += \
 
 FORMS += \
     connect.ui \
+    kernel_show.ui \
     mainwindow.ui
 
 # Default rules for deployment.
