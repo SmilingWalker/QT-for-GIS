@@ -44,6 +44,8 @@
 #include<variousDialogs.h>
 #include<NLPIR.h>
 #include<kernel_showwidget.h>
+#include<treeindex_select.h>
+#include"Projection/maplambert.h"
 
 
 
@@ -60,7 +62,6 @@ public:
     ~MainWindow();
     void LoadGeoJsonFile(QString filename);
     void LoadShpfile(QString filename);
-    void Generate_JPG();
 
 private slots:
     void on_actionGeoJSON_triggered();
@@ -76,6 +77,10 @@ private slots:
     void on_textIndex_triggered();
 
     void on_Kernel_caculate_triggered();
+
+    void Generate_TreeIndex(SfsLayer *layer,int limitation);
+
+    void on_LambertProj_triggered();
 
 private:
     Ui::MainWindow *ui;

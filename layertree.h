@@ -36,6 +36,7 @@ public slots:
     void LayerToDown();
     void Zoom();
     void Remove();
+    void showTreeIndex();
 
     void setLayerVisibility(QTreeWidgetItem *item);
     void itemChangeSlot(QTreeWidgetItem *item, int column);
@@ -49,6 +50,7 @@ private:
     QAction* setStyle;
     QAction *ZoomToLayer;
     QAction *remove;
+    QAction *ShowTreeIndex;
     FileReader *fileReader;
 
     //SLD配置
@@ -71,6 +73,7 @@ signals:
     void updateMap();//需要提醒glwidget 更新地图绘制
     void LayerZoom(SfsLayer*);
     void RemoveLayer(SfsLayer*);
+    void TreeIndex(SfsLayer*);
 };
 
 #endif // LAYERTREE_H

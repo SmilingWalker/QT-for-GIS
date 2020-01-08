@@ -1,4 +1,4 @@
-﻿#ifndef SLDSETTINGFORM_H
+#ifndef SLDSETTINGFORM_H
 #define SLDSETTINGFORM_H
 
 #include <QObject>
@@ -11,6 +11,8 @@
 #include <SFS/sfslayer.h>
 #include <QComboBox>
 #include <SFS/sfsmap.h>
+#include <QPainter>
+#include <QStyleOption>
 
 class SldSettingForm : public QDialog
 {
@@ -25,7 +27,11 @@ signals:
 public slots:
     void check();
     void cancelSetting();
+    void on_FillColorSelection_Triggered();
+    void on_StrokeColorSelection_Triggered();
+
 private:
+    void paintEvent(QPaintEvent *e);
     QLabel* strokeLbl;
     QLabel* stroke_widthLbl;
     QLabel* fillLbl;
@@ -34,6 +40,8 @@ private:
     QLineEdit* stroke_widthLet;
     QLineEdit* fillLet;
     QLineEdit* sizeLet;
+    QPushButton* fillColorSelection;
+    QPushButton* strokeColorSelection;
     QPushButton* apply;
     QPushButton* cancel;
     void applyArgs(bool i1, bool i2, bool i3, bool i4);

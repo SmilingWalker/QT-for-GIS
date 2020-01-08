@@ -27,6 +27,8 @@ SOURCES += \
     Index/grid.cpp \
     Index/gridindex.cpp \
     Index/spatialindex.cpp \
+    Projection/maplambert.cpp \
+    Projection/mapproject.cpp \
     SFS/sfsgeometry.cpp \
     SFS/sfsgeometrycollection.cpp \
     SFS/sfslayer.cpp \
@@ -59,6 +61,7 @@ SOURCES += \
     prquadtree.cpp \
     retrievetable.cpp \
     std_reader.cpp \
+    treeindex_select.cpp \
     variousDialogs.cpp
 
 HEADERS += \
@@ -68,6 +71,8 @@ HEADERS += \
     Index/gridindex.h \
     Index/spatialindex.h \
     NLPIR.h \
+    Projection/maplambert.h \
+    Projection/mapproject.h \
     SFS/sfsgeometry.h \
     SFS/sfsgeometrycollection.h \
     SFS/sfslayer.h \
@@ -103,12 +108,14 @@ HEADERS += \
     prquadtree.h \
     retrievetable.h \
     std_reader.h \
+    treeindex_select.h \
     variousDialogs.h
 
 FORMS += \
     connect.ui \
     kernel_show.ui \
-    mainwindow.ui
+    mainwindow.ui \
+    treeindex_select.ui
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

@@ -33,6 +33,8 @@ public:
     int getPropertySize();
     int getPropertyTypeAt(int index);
 
+    bool index_show;
+
 private:
     QString name;
     GeoType Geometype;

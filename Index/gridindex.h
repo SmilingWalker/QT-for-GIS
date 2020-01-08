@@ -24,6 +24,7 @@ public:
     virtual void save(QString path) override;
     virtual void relatedGrids(BoundaryBox *bbox, QVector<Grid *> *grids) override;
     virtual Index_Type getType() override;
+    void getIndexID(SfsPoint *pt,int* row,int* column);
     Grid* gridAt(int row, int column);
 signals:
 

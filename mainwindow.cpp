@@ -30,6 +30,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->layerTree,&LayerTree::updateMap,ui->glwidget,&GLwidget::updateMap);
     connect(ui->layerTree,&LayerTree::LayerZoom,ui->glwidget,&GLwidget::ZoomToLayer);
     connect(ui->layerTree,&LayerTree::RemoveLayer,ui->glwidget,&GLwidget::RemoveLayer);
+    connect(ui->layerTree,&LayerTree::TreeIndex,ui->glwidget,&GLwidget::ShowIndex);
 
     CPLSetConfigOption("GDAL_DATA","D:/gdal2.4/data");
     //CPLSetConfigOption("SHAPE_ENCODING", "");//对shpfile 的字符串编码方式设置，这里要选择能够支持中文，之后才能成功分词
@@ -68,10 +69,25 @@ void MainWindow::on_actionGeoJSON_triggered()
             QByteArray geoarray = geoFile.readAll();
             geoFile.close();
             QJsonDocument geojson = QJsonDocument::fromJson(geoarray);
-            SfsLayer *layer = new SfsLayer();
-            fileReader->GeoJsonReader(&geojson,layer);
-            SetTree(layer);
-            RenderMap(layer);
+
+            QString layerName = fileName;
+            layerName.chop(8);
+            int index1 = layerName.lastIndexOf("/");
+            int length = layerName.length();
+            layerName = layerName.right(length - index1 - 1);
+            QVector<SfsLayer*> *layers = new QVector<SfsLayer*>;
+            fileReader->GeoJsonReader(&geojson,layers);
+            for(int i=0;i<layers->size();i++){
+                SfsLayer *layer = layers->at(i);
+                if(layer->getGeometype()==Sfs_Point)
+                    layer->setName(layerName+"_point");
+                else if(layer->getGeometype()==Sfs_Polygon)
+                    layer->setName(layerName+"_Polygon");
+                else if(layer->getGeometype()==Sfs_LineString)
+                    layer->setName(layerName+"_polyline");
+                SetTree(layer);
+                RenderMap(layer);
+            }
         }
     }
 
@@ -112,29 +128,6 @@ void MainWindow::LoadShpfile(QString filename)
     //**传递图层到glwidget
     RenderMap(layer);
 
-}
-
-void MainWindow::Generate_JPG()
-{
-//    QImage *image = new QImage(700,600,QImage::Format_RGB32);
-//    if(image!=nullptr){
-//        for(int i=0;i<700;i++){
-//            for(int j=0;j<600;j++){
-//                QColor color;
-
-//                color.setRgb(i/4,j/4,10);
-//                image->setPixelColor(i,j,color);
-//            }
-//        }
-//        image->save("kernel.bmp","BMP",100);
-//    }
-//    Kernel_ShowWidget *window = new Kernel_ShowWidget(this);
-//    window->image = image;
-//    window->setGeometry(this->rect());
-//    window->show();
-
-
-//    window->update();
 }
 
 void MainWindow::LoadPostgreSQL(OGRLayer *ogrlayer)
@@ -264,21 +257,18 @@ void MainWindow::on_actionClear_triggered()
 
 void MainWindow::on_QuarTree_triggered()
 {
-    //索引应该是一个图层的，每一个图层可以有一个索引，建立索引
-    SfsMap* map = ui->glwidget->getMap();
-    for(int i=0;i<map->layers->size();i++){
-        SfsLayer * layer = map->layers->value(i);
-        if(layer->TreeIndex!=nullptr)
-            continue;
-        BoundaryBox *bbox = layer->bbox;
-        if(layer->TreeIndex==nullptr)
-        {
-            PRQuadTree *tree = new PRQuadTree(this);//新建一个四叉树索引
-            //递归计算，
-            tree->GenerateTree(layer,*bbox);
-            layer->TreeIndex = tree;//交给图层来管理 索引数据
-        }
+    SfsMap *map = ui->glwidget->getMap();
+    int maxLayerIndex = map->layers->size() - 1;
+    if(maxLayerIndex == -1){
+        QMessageBox::critical(this,"ERROR","No layer in the map!",QMessageBox::Yes);
+        return;
     }
+    treeIndex_Select *tree = new treeIndex_Select(nullptr,map);
+    QPoint pt(this->rect().x()+this->geometry().width(),this->geometry().y()+this->geometry().height()*0.2);
+    QWidget::mapToGlobal(pt);
+    tree->setGeometry(pt.x(),pt.y(),this->geometry().width()*0.5,this->geometry().height()*0.5);
+    connect(tree,SIGNAL(TreeIndex(SfsLayer*,int)),this,SLOT(Generate_TreeIndex(SfsLayer*,int)));
+    tree->show();
 }
 
 
@@ -346,4 +336,77 @@ void MainWindow::on_Kernel_caculate_triggered()
     else{
         QMessageBox::information(this,"information","No layer in map");
     }
+}
+
+void MainWindow::Generate_TreeIndex(SfsLayer *layer, int limitation)
+{
+        if(layer->TreeIndex!=nullptr)
+        {
+            QMessageBox::information(this,"information","TreeIndex exists,Generate new TreeIndex");
+            delete  layer->TreeIndex;
+            layer->TreeIndex=nullptr;
+        }
+        BoundaryBox *bbox = layer->bbox;
+        if(layer->TreeIndex==nullptr)
+        {
+            PRQuadTree *tree = new PRQuadTree(this);//新建一个四叉树索引
+            tree->setObjectsLimit(limitation);
+            layer->TreeIndex = tree;//交给图层来管理 索引数据
+            //递归计算，
+            tree->bboxes = new QVector<BoundaryBox*>;
+            tree->isroot = true;
+            tree->GenerateTree(layer,*bbox);
+        }
+
+}
+
+void MainWindow::on_LambertProj_triggered()
+{
+    MapLambert *Prj = new MapLambert();
+    SfsMap *map = ui->glwidget->getMap();
+    BoundaryBox *bbox = map->bbox;
+    float left,right,top,bottom;
+    float NS,NN,EW,EE;//用于传递经纬度
+    NS = bbox->getBottomY();
+    NN =bbox->getTopY();
+    EW = bbox->getLeftX();
+    EE = bbox->getRightX();
+    Prj->setGraticule(NS,NN,EW,EE);
+    Prj->getXY(EW,NS,&bottom,&left);
+    Prj->getXY(EE,NN,&top,&right);
+    map->bbox->setBoundary(top,bottom,left,right);
+    SfsLayer* layer = map->layers->at(0);
+    for (int i=0;i<layer->geometries->size();i++) {
+        float x,y=0;
+        SfsGeometry *geometry = layer->geometries->at(i);
+       if(geometry->GeometryType()==Sfs_Point){
+           SfsPoint *pt = (SfsPoint*)geometry;
+           Prj->getXY(pt->x,pt->y,&y,&x);
+           pt->x = x;
+           pt->y = y;
+       }
+       else if(geometry->GeometryType()==Sfs_LineString){
+           SfsLineString *line = (SfsLineString*)geometry;
+           for(int m1=0;m1<line->pts->size();m1++){
+               SfsPoint *pt = line->pts->at(m1);
+               Prj->getXY(pt->x,pt->y,&y,&x);
+               pt->x = x;
+               pt->y = y;
+           }
+       }
+       else if(geometry->GeometryType()==Sfs_Polygon){
+           SfsPolygon *polygon = (SfsPolygon*)geometry;
+           for(int m1=0;m1<polygon->boundaries->size();m1++){
+               SfsLineString *line = polygon->boundaries->at(m1);
+               for(int m2=0;m2<line->pts->size();m2++){
+                   SfsPoint *pt = line->pts->at(m2);
+                   Prj->getXY(pt->x,pt->y,&y,&x);
+                   pt->x = x;
+                   pt->y = y;
+               }
+           }
+       }
+   }
+    map->layers->clear();
+    RenderMap(layer);
 }

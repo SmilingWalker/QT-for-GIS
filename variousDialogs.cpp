@@ -4,10 +4,11 @@
 #include <QRegExp>
 #include <QMessageBox>
 #include <QDebug>
+#include <QColorDialog>
 
 SldSettingForm::SldSettingForm(OGCSld* sld) : QDialog()
 {
-    this->setWindowTitle(tr("设置SLD"));
+    this->setWindowTitle(QString::fromLocal8Bit("设置SLD"));
     setFixedSize(400, 340);
     this->sld = sld;
 
@@ -16,6 +17,11 @@ SldSettingForm::SldSettingForm(OGCSld* sld) : QDialog()
     fillLbl->setText("Fill: ");
     fillLet = new QLineEdit(this);
     fillLet->move(130, 80);
+    fillColorSelection = new QPushButton(this);
+    fillColorSelection->move(320, 83);
+    fillColorSelection->resize(25,20);
+    //QString fillColor = QString("");
+    fillColorSelection->setStyleSheet(QString("QPushButton{background-color:rgb(122, 122, 122)}"));
 
 
     strokeLbl = new QLabel(this);
@@ -23,7 +29,10 @@ SldSettingForm::SldSettingForm(OGCSld* sld) : QDialog()
     strokeLbl->setText("Stroke: ");
     strokeLet = new QLineEdit(this);
     strokeLet->move(130, 130);
-
+    strokeColorSelection = new QPushButton(this);
+    strokeColorSelection->move(320, 133);
+    strokeColorSelection->resize(25,20);
+    strokeColorSelection->setStyleSheet(QString("QPushButton{background-color:rgb(122, 122, 122)}"));
 
     stroke_widthLbl = new QLabel(this);
     stroke_widthLbl->move(10, 180);
@@ -40,11 +49,14 @@ SldSettingForm::SldSettingForm(OGCSld* sld) : QDialog()
     apply = new QPushButton("Apply",this);
     apply->move(100, 270);
     cancel = new QPushButton("Cancel", this);
-    cancel->move(190, 270);
+    cancel->move(220, 270);
     //点击apply按钮提交输入，然后对输入格式进行检查。如果检查通过，设置sld；如果不通过，更改输入
     connect(apply, SIGNAL(clicked()), this, SLOT(check()));
     //点击cancel取消设置
     connect(cancel, SIGNAL(clicked()), this, SLOT(cancelSetting()));
+    //点击颜色方框按钮，显示QColorDialog
+    connect(fillColorSelection, SIGNAL(clicked()), this, SLOT(on_FillColorSelection_Triggered()));
+    connect(strokeColorSelection, SIGNAL(clicked()), this, SLOT(on_StrokeColorSelection_Triggered()));
 }
 
 SldSettingForm::~SldSettingForm(){
@@ -58,6 +70,7 @@ SldSettingForm::~SldSettingForm(){
     delete sizeLet;
     delete apply;
     delete cancel;
+    delete fillColorSelection;
 }
 
 void SldSettingForm::check(){
@@ -142,6 +155,39 @@ void SldSettingForm::applyArgs(bool i1, bool i2, bool i3, bool i4){
 
 void SldSettingForm::cancelSetting(){
     reject();
+}
+
+void SldSettingForm::on_FillColorSelection_Triggered()
+{
+    QColor color = QColorDialog::getColor();
+    QString colorHtml = color.name();
+    int r, g, b;
+    color.getRgb(&r, &g, &b);
+    QString colorRGB = QString("QPushButton{background-color:rgb(%1, %2, %3)}").arg(r).arg(g).arg(b);
+    //sld->setFill(color);
+    fillLet->setText(colorHtml);
+    fillColorSelection->setStyleSheet(colorRGB);
+}
+
+void SldSettingForm::on_StrokeColorSelection_Triggered()
+{
+    QColor color = QColorDialog::getColor();
+    QString colorHtml = color.name();
+    int r, g, b;
+    color.getRgb(&r, &g, &b);
+    QString colorRGB = QString("QPushButton{background-color:rgb(%1, %2, %3)}").arg(r).arg(g).arg(b);
+    //sld->setStroke(color);
+    strokeLet->setText(colorHtml);
+    strokeColorSelection->setStyleSheet(colorRGB);
+}
+
+void SldSettingForm::paintEvent(QPaintEvent *e)
+{
+    QStyleOption opt;
+    opt.init(this);
+    QPainter p(this);
+    style()->drawPrimitive(QStyle::PE_Widget, &opt, &p, this);
+    QWidget::paintEvent(e);
 }
 
 IndexSettingForm::IndexSettingForm(int max){
@@ -333,14 +379,12 @@ void KernelDensityForm::applyArgs(){
     else if(bandWidthCb->currentIndex()== -1){
         this->bandWidth = -1;
     }
-
     Properties* property = layer->geometries->at(0)->getProperties();
     if(property->getProprtyTypeAt(propertyIndex)!= Double_PRO){
         propertyIndex = -1;
         QMessageBox::warning(this, tr("Warning!"),tr("Property is not double!"), QMessageBox::Yes);
         return;
     }
-
     QString cellSizeTxt;
     cellSizeTxt = cellSizeLet->text();
     if(layerIndex == -1 || propertyIndex == -1 || cellSizeTxt == ""){

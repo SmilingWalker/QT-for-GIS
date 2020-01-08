@@ -30,7 +30,7 @@ class FileReader: public QObject
     Q_OBJECT
 public:
     FileReader();
-    void GeoJsonReader(QJsonDocument *geojson,SfsLayer* layer);
+    void GeoJsonReader(QJsonDocument *geojson,QVector<SfsLayer*> *layers);
     void ShpfileReader(GDALDataset *pDoc,SfsLayer* layer);
     void LoadPostGIS(OGRLayer *ogrlayer, SfsLayer* layer);
     void SldReader(QDomDocument* sldDoc, SfsLayer *layer);

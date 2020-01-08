@@ -14,7 +14,7 @@ class PRQuadTree : public QObject
 public:
     explicit PRQuadTree(QObject *parent = nullptr);
     ~PRQuadTree();
-    bool isleaf;
+    bool isleaf,isroot;
     PRQuadTree *NW;//PR四叉树四个方向
     PRQuadTree *NE;
     PRQuadTree *SW;
@@ -22,9 +22,14 @@ public:
     QVector<Metadata *> *Indexes;
     SfsPoint pt;
     BoundaryBox *bbox;//如果是叶子节点的话记录一下它的外接矩阵
-    int ObjectsLimit;
+    QVector<BoundaryBox*> *bboxes;
 public:
     void GenerateTree(SfsLayer *layer,BoundaryBox bbox);
+    int getObjectsLimit() const;
+    void setObjectsLimit(int value);
+
+private:
+    int ObjectsLimit;
 
 
 signals:

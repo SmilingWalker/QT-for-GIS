@@ -30,6 +30,7 @@ void Kernel_ShowWidget::paintEvent(QPaintEvent *event)
     {
         QPainter painter(this);        
         QRectF source(0.0, 0.0, image->width(),image->height());
+        QRect rect = this->rect();
         painter.drawImage(this->rect(),*image);
     }
 }

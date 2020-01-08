@@ -34,6 +34,7 @@
 
 
 
+
 class GLwidget : public QOpenGLWidget,protected QOpenGLFunctions_3_3_Core
 {
         Q_OBJECT
@@ -49,9 +50,14 @@ public slots:
     void updateMap();
     void ZoomToLayer(SfsLayer *layer);
     void RemoveLayer(SfsLayer* layer);
+    void ShowIndex(SfsLayer *layer);
 
 
 public:
+    //绘制索引判断
+    SfsLayer *index_layer;
+    void DrawIndex();
+    void DrawSelect();
     bool Selection;
     QVector<Metadata *> RetrieveResult;//实际变量
     QVector<Metadata *> temp;//临时变量

@@ -120,6 +120,12 @@ void LayerTree::Remove()
 
 }
 
+void LayerTree::showTreeIndex()
+{
+    SfsLayer *layer = map->layers->at(triggerdItemIndex);
+    TreeIndex(layer);
+}
+
 void LayerTree::setLayerVisibility(QTreeWidgetItem *item)
 {
     int check = item->whatsThis(0).toInt();
@@ -169,6 +175,9 @@ void LayerTree::contextMenuEvent(QContextMenuEvent *event)
         toDownStair = new QAction(QString::fromLocal8Bit("To downstair"),treeWidgetItemMenu);
         ZoomToLayer = new QAction(QString::fromLocal8Bit("Zoom to layer"),treeWidgetItemMenu);
         remove = new QAction(QString::fromLocal8Bit("remove layer"),treeWidgetItemMenu);
+        ShowTreeIndex = new QAction(QString::fromLocal8Bit("show TreeIndex"),treeWidgetItemMenu);
+        ShowTreeIndex->setCheckable(true);
+        ShowTreeIndex->setChecked(map->layers->at(triggerdItemIndex)->index_show);
         treeWidgetItemMenu->addAction(loadSld);
         treeWidgetItemMenu->addAction(setStyle);
         treeWidgetItemMenu->addAction(toTop);
@@ -176,6 +185,7 @@ void LayerTree::contextMenuEvent(QContextMenuEvent *event)
         treeWidgetItemMenu->addAction(toDownStair);
         treeWidgetItemMenu->addAction(ZoomToLayer);
         treeWidgetItemMenu->addAction(remove);
+        treeWidgetItemMenu->addAction(ShowTreeIndex);
 
         //connect signals and slots
         connect(loadSld,SIGNAL(triggered()),this, SLOT(LoadSld()));
@@ -185,6 +195,7 @@ void LayerTree::contextMenuEvent(QContextMenuEvent *event)
         connect(toUpstair,SIGNAL(triggered()),this, SLOT(LayerToUpstair()));
         connect(toDownStair,SIGNAL(triggered()),this, SLOT(LayerToDown()));
         connect(remove,SIGNAL(triggered()),this, SLOT(Remove()));
+        connect(ShowTreeIndex,SIGNAL(triggered()),this, SLOT(showTreeIndex()));
         //菜单栏出现在这里
         treeWidgetItemMenu->exec(QCursor::pos());
         delete treeWidgetItemMenu;

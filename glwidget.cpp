@@ -3,8 +3,8 @@
 #include<GPC/gpc.h>
 #include<GPC/gpc.c>
 #include<QTime>
-
 #include<qpixmap.h>
+
 gpc_vertex buildVertex(float x, float y)
 {
     gpc_vertex vertex;
@@ -17,7 +17,7 @@ GLwidget::GLwidget(QWidget *parent):QOpenGLWidget(parent)
     //新建地图,设置范围为最大值
     map = new SfsMap();
     map->bbox->setBoundary(DBL_MIN,DBL_MAX,DBL_MAX,DBL_MIN);
-
+    index_layer = nullptr;
     setAutoFillBackground(false);
     tem_x =0;
     tem_y =0;
@@ -113,7 +113,7 @@ void GLwidget::paintGL()
                     glLineWidth(layer->render->getSld()->getStroke_width());
                     QColor  color = layer->render->getSld()->getStroke();
                     m_shaderProgram->setUniformValue("color",color.redF(),color.greenF(),color.blueF());
-                    glDrawArrays(GL_LINES,0,VAO->property("vertex_num").toInt());
+                    glDrawArrays(GL_LINE_STRIP,0,VAO->property("vertex_num").toInt());
                 }
                 else if(VAO->property("geo_type").toInt()==Sfs_Point)
                 {
@@ -124,51 +124,10 @@ void GLwidget::paintGL()
                //m_shaderProgram->release();//不需要进行解绑，整个过程使用的是一个着色器程序
             }
         }
-        if(Selection){
-                int prefix = 0;//前面是否有图层，有图层则附加值，图层要素个数
-                m_shaderProgram->setUniformValue("color",0.1,0.1,0.1);
-                for (int i=0;i<RetrieveResult.size();i++) {
-                    Metadata *data = RetrieveResult.value(i);
-                    for(int j=0;j<map->layers->size();j++)
-                    {
-                        //先匹配图层
-                        if(data->layer==map->layers->value(j))
-                        {
-                            prefix += 0;
-                            break;
-                        }
-                        else
-                        {
-                            if(map->layers->value(j)->getGeometype()!=Sfs_Point)
-                            prefix += map->layers->value(j)->geometries->size();
-                            else
-                                prefix += 1;
-                        }
-                    }
-                   QOpenGLVertexArrayObject *VAO = VAOs->value(prefix+data->ID);
-                   VAO->bind();
-                   if(VAO->property("geo_type").toInt()==Sfs_Polygon)
-                   {
-                       QColor  color = data->layer->render->getSld()->getFill();
-                       m_shaderProgram->setUniformValue("color",152.0/255.0,169.0/255.0,238.0/255.0);
-                       glDrawElements(GL_TRIANGLES,VAO->property("vertex_num").toInt(),GL_UNSIGNED_INT,(void*)0);
-                   }
-                   else if(VAO->property("geo_type").toInt()==Sfs_LineString){
-                       glLineWidth(data->layer->render->getSld()->getStroke_width());
-                       QColor  color = data->layer->render->getSld()->getStroke();
-                       m_shaderProgram->setUniformValue("color",152.0/255.0,169.0/255.0,238.0/255.0);
-                       glDrawArrays(GL_LINES,0,VAO->property("vertex_num").toInt());
-                   }
-                   else if(VAO->property("geo_type").toInt()==Sfs_Point)
-                   {
-                       glPointSize(data->layer->render->getSld()->getSize());
-                        m_shaderProgram->setUniformValue("color",152.0/255.0,169.0/255.0,238.0/255.0);
-                       glDrawArrays(GL_POINTS,0,VAO->property("vertex_num").toInt());
-                   }
-                   VAO->release();
-               }
-
-            }
+        m_shaderProgram->setUniformValue("color",0.9,0.2,0.5);
+        DrawIndex();
+        m_shaderProgram->setUniformValue("color",0.0,0.628,0.85);
+        DrawSelect();
         m_shaderProgram->release();
 
     }
@@ -422,6 +381,100 @@ void GLwidget::RemoveLayer(SfsLayer *layer)
     update();
 }
 
+void GLwidget::ShowIndex(SfsLayer *layer)
+{
+    if(layer->index_show){
+        layer->index_show = false;
+    }
+    else{
+        layer->index_show = true;
+    }
+    index_layer = layer;
+    update();
+}
+
+void GLwidget::DrawIndex()
+{
+    if(index_layer==nullptr)
+        return ;
+    if(index_layer->TreeIndex!=nullptr&&index_layer->index_show){
+        glMatrixMode(GL_MODELVIEW);
+        glLoadIdentity();
+
+        glScalef(scale,scale,0);
+        if(translate)
+            glTranslatef(change_x,change_y,0);
+        glMatrixMode(GL_PROJECTION);
+        glLoadIdentity();
+        glOrtho(lx,rx,by,ty,1,0);
+        glMatrixMode(GL_MODELVIEW);
+        PRQuadTree* tree = index_layer->TreeIndex;
+        QVector<BoundaryBox*> *bboxes = tree->bboxes;
+        for(int j=0;j<bboxes->size();j++){
+            BoundaryBox *bbox = bboxes->at(j);
+            glBegin(GL_LINE_LOOP);
+            glVertex2f(bbox->getLeftX(),bbox->getTopY());
+            glVertex2f(bbox->getRightX(),bbox->getTopY());
+            glVertex2f(bbox->getRightX(),bbox->getBottomY());
+            glVertex2f(bbox->getLeftX(),bbox->getBottomY());
+            glEnd();
+        }
+    }
+}
+
+void GLwidget::DrawSelect()
+{
+    if(Selection){
+        glMatrixMode(GL_MODELVIEW);
+        glLoadIdentity();
+
+        glScalef(scale,scale,0);
+        if(translate)
+            glTranslatef(change_x,change_y,0);
+        glMatrixMode(GL_PROJECTION);
+        glLoadIdentity();
+        glOrtho(lx,rx,by,ty,1,0);
+        glMatrixMode(GL_MODELVIEW);
+        for (int i=0;i<RetrieveResult.size();i++) {
+            Metadata *data = RetrieveResult.value(i);
+            if(data->layer==nullptr)
+                continue;
+            SfsGeometry *geometry = data->layer->geometries->at(data->ID);
+           if(geometry->GeometryType()==Sfs_Point){
+               SfsPoint *pt = (SfsPoint*)geometry;
+               glBegin(GL_POINTS);
+               glColor3d(0, 157, 213);
+               glVertex2f(pt->x,pt->y);
+               glEnd();
+           }
+           else if(geometry->GeometryType()==Sfs_LineString){
+               SfsLineString *line = (SfsLineString*)geometry;
+               glBegin(GL_LINE_LOOP);
+               glColor3d(0, 157, 213);
+               glLineWidth(5);
+               for(int m1=0;m1<line->pts->size();m1++){
+                   glVertex2f(line->pts->at(m1)->x,line->pts->at(m1)->y);
+               }
+               glEnd();
+               glLineWidth(1);
+           }
+           else if(geometry->GeometryType()==Sfs_Polygon){
+               SfsPolygon *polygon = (SfsPolygon*)geometry;
+               for(int m1=0;m1<polygon->boundaries->size();m1++){
+                   SfsLineString *line = polygon->boundaries->at(m1);
+                   glLineWidth(5);
+                   glBegin(GL_LINE_LOOP);
+                   for(int m2=0;m2<line->pts->size();m2++){
+                       glVertex2f(line->pts->at(m2)->x,line->pts->at(m2)->y);
+                   }
+                   glEnd();
+                   glLineWidth(1);
+               }
+           }
+       }
+    }
+}
+
 SfsMap *GLwidget::getMap() const
 {
     return map;
@@ -513,7 +566,6 @@ void GLwidget::map2Vao(SfsLayer *layer)
                 //记录 tristrip的个数，每个多边形是由多个tristrip构成，导致每个都要记录
                 QVector<int> index;//索引缓冲对象
                 int tr_index=0,triangles = 0;
-
                 for (int i=0; i<tristrip->num_strips; i++) {
                     //得到每个tristrip
                     gpc_vertex_list list = tristrip->strip[i];

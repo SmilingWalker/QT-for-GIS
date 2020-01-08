@@ -13,6 +13,7 @@ SfsLayer::SfsLayer()
     visible = true;
     gridIndex = nullptr;
     textDB = nullptr;
+    index_show = false;
 }
 
 SfsLayer::~SfsLayer()

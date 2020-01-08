@@ -93,7 +93,14 @@
     <property name="title">
      <string>工具</string>
     </property>
+    <widget class="QMenu" name="menu_4">
+     <property name="title">
+      <string>地图投影</string>
+     </property>
+     <addaction name="LambertProj"/>
+    </widget>
     <addaction name="Kernel_caculate"/>
+    <addaction name="menu_4"/>
    </widget>
    <addaction name="menu"/>
    <addaction name="menu_2"/>
@@ -218,6 +225,11 @@
   <action name="Kernel_caculate">
    <property name="text">
     <string>核密度估计</string>
+   </property>
+  </action>
+  <action name="LambertProj">
+   <property name="text">
+    <string>Lambert</string>
    </property>
   </action>
  </widget>

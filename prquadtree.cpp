@@ -11,7 +11,7 @@ PRQuadTree::PRQuadTree(QObject *parent) : QObject(parent)
     Indexes = nullptr;
     isleaf = false;//默认构造为非叶子节点
     bbox = nullptr;
-    ObjectsLimit = 7;//初始化，四叉树建立时，默认每个格最多有五个
+    bboxes = nullptr;
 }
 
 PRQuadTree::~PRQuadTree()
@@ -49,6 +49,12 @@ PRQuadTree::~PRQuadTree()
         delete bbox;
         bbox = nullptr;
     }
+    if(bboxes!=nullptr)
+    {
+        bboxes->clear();
+        delete bboxes;
+        bboxes = nullptr;
+    }
 
 }
 
@@ -67,12 +73,16 @@ void PRQuadTree::GenerateTree(SfsLayer *layer, BoundaryBox bbox)
     {
         //如果不满足最低限度，则进行递归计算
         NW = new PRQuadTree(this);
+        NW->setObjectsLimit(this->getObjectsLimit());
         NW->GenerateTree(layer,BoundaryBox(bbox.getTopY(),pt.y,pt.x,bbox.getRightX()));
         NE = new PRQuadTree(this);
+        NE->setObjectsLimit(this->getObjectsLimit());
         NE->GenerateTree(layer,BoundaryBox(bbox.getTopY(),pt.y,bbox.getLeftX(),pt.x));
         SW = new PRQuadTree(this);
+        SW->setObjectsLimit(this->getObjectsLimit());
         SW->GenerateTree(layer,BoundaryBox(pt.y,bbox.getBottomY(),pt.x,bbox.getRightX()));
         SE = new PRQuadTree(this);
+        SE->setObjectsLimit(this->getObjectsLimit());
         SE->GenerateTree(layer,BoundaryBox(pt.y,bbox.getBottomY(),bbox.getLeftX(),pt.x));
     }
     else{
@@ -80,6 +90,7 @@ void PRQuadTree::GenerateTree(SfsLayer *layer, BoundaryBox bbox)
         Indexes = new QVector<Metadata *>;
         isleaf = true;
         this->bbox = new BoundaryBox(bbox.getTopY(),bbox.getBottomY(),bbox.getLeftX(),bbox.getRightX());
+        layer->TreeIndex->bboxes->append(this->bbox);
         for(int j=0;j<layer->geometries->size();j++)
         {
             if(layer->geometries->value(j)->bbox->intersect(&bbox))
@@ -93,4 +104,14 @@ void PRQuadTree::GenerateTree(SfsLayer *layer, BoundaryBox bbox)
             }
         }
     }
+}
+
+int PRQuadTree::getObjectsLimit() const
+{
+    return ObjectsLimit;
+}
+
+void PRQuadTree::setObjectsLimit(int value)
+{
+    ObjectsLimit = value;
 }

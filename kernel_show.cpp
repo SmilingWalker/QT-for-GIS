@@ -89,6 +89,7 @@ void Kernel_show::Normalization()
 
 void Kernel_show::GetColors()
 {
+    colors.clear();
     if(KDE==nullptr)
         return;
     int R_interval = (EndColor.red()-beginColor.red())/(classfication-1);
@@ -118,6 +119,7 @@ void Kernel_show::on_classify_show_clicked()
 {
     classfication = ui->classify->currentText().toInt();
     GetColors();
+    ui->Kernel_Show->colors.clear();
     ui->Kernel_Show->colors = colors;
     ui->Kernel_Show->Generate_Image();
     ui->Kernel_Show->update();
